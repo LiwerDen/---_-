@@ -1,0 +1,1958 @@
+<!DOCTYPE html>
+<html lang="ru" class="h-full">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>D&D ai</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%236366f1'/%3E%3Ctext x='32' y='42' text-anchor='middle' fill='white' font-family='system-ui,sans-serif' font-size='22' font-weight='700'%3EDD%3C/text%3E%3C/svg%3E" />
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <style>
+    * { font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; }
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #2d2d4a; border-radius: 8px; }
+    ::-webkit-scrollbar-thumb:hover { background: #6366f1; }
+    .neon-border { box-shadow: 0 0 15px rgba(99, 102, 241, 0.15), inset 0 0 15px rgba(99, 102, 241, 0.05); }
+    @keyframes statusPulse { 0%, 100% { opacity: 1; box-shadow: 0 0 4px #10b981; } 50% { opacity: 0.5; box-shadow: 0 0 12px #10b981; } }
+    .status-pulse { animation: statusPulse 2s ease-in-out infinite; }
+    @keyframes typingBounce { 0%, 60%, 100% { transform: translateY(0); } 30% { transform: translateY(-8px); } }
+    .typing-dot { animation: typingBounce 1.4s ease-in-out infinite; }
+    .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    .fade-in { animation: fadeInUp 0.5s ease-out forwards; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    .fade-in-simple { animation: fadeIn 0.3s ease-out forwards; }
+    @keyframes slideIn { from { opacity: 0; transform: translateX(-20px); } to { opacity: 1; transform: translateX(0); } }
+    .slide-in { animation: slideIn 0.4s ease-out forwards; }
+    @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+    .skeleton { background: linear-gradient(90deg, rgba(99,102,241,0.05) 25%, rgba(99,102,241,0.12) 50%, rgba(99,102,241,0.05) 75%); background-size: 200% 100%; animation: shimmer 1.5s ease-in-out infinite; border-radius: 8px; }
+    .gradient-text { background: linear-gradient(135deg, #6366f1, #3b82f6, #10b981); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    @keyframes modalIn { from { opacity: 0; transform: scale(0.9) translateY(20px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+    .modal-enter { animation: modalIn 0.3s ease-out forwards; }
+    .sidebar-item { transition: all 0.2s ease; }
+    .sidebar-item:hover { background: rgba(99, 102, 241, 0.1); }
+    .sidebar-item.active { background: rgba(99, 102, 241, 0.15); border-right: 3px solid #6366f1; }
+    .chat-msg strong { font-weight: 700; }
+    .chat-msg ul { list-style: disc; margin-left: 1.2em; margin-top: 0.4em; }
+    .chat-msg ol { list-style: decimal; margin-left: 1.2em; margin-top: 0.4em; }
+    .chat-msg li { margin-bottom: 0.25em; }
+    .chat-msg p { margin-bottom: 0.5em; }
+    .chat-msg code { background: rgba(99,102,241,0.15); padding: 2px 6px; border-radius: 4px; font-size: 0.85em; }
+    .chat-msg h1,.chat-msg h2,.chat-msg h3 { font-weight: 700; margin-top: 0.6em; margin-bottom: 0.3em; }
+    :root {
+      --app-bg: #07070d;
+      --app-text: rgb(229,231,235);
+      --glass-bg: rgba(15, 15, 30, 0.65);
+      --glass-border: rgba(99, 102, 241, 0.12);
+      --glass-light-bg: rgba(99, 102, 241, 0.06);
+      --glass-light-border: rgba(99, 102, 241, 0.10);
+    }
+    html[data-theme="light"] {
+      --app-bg: #f6f7ff;
+      --app-text: rgb(17,24,39);
+      --glass-bg: rgba(255, 255, 255, 0.72);
+      --glass-border: rgba(99, 102, 241, 0.18);
+      --glass-light-bg: rgba(99, 102, 241, 0.10);
+      --glass-light-border: rgba(99, 102, 241, 0.16);
+    }
+    body { background: var(--app-bg); color: var(--app-text); }
+    .glass { background: var(--glass-bg); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid var(--glass-border); }
+    .glass-light { background: var(--glass-light-bg); backdrop-filter: blur(12px); border: 1px solid var(--glass-light-border); }
+    html[data-theme="light"] .chat-msg { color: rgb(31,41,55); }
+    html[data-theme="light"] .text-gray-200 { color: rgb(17,24,39) !important; }
+    html[data-theme="light"] .text-white { color: rgb(17,24,39) !important; }
+    html[data-theme="light"] .text-gray-400 { color: rgb(55,65,81) !important; }
+    html[data-theme="light"] .text-gray-500 { color: rgb(75,85,99) !important; }
+    html[data-theme="light"] .text-gray-600 { color: rgb(107,114,128) !important; }
+    html[data-theme="light"] .border-indigo-500\/10 { border-color: rgba(99,102,241,0.18) !important; }
+    html[data-theme="light"] #planChannel { background: rgb(255,255,255) !important; color: rgb(17,24,39) !important; }
+    .plan-card-highlight { box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.55); transition: box-shadow 0.4s ease; }
+    .growth-bar { height: 8px; border-radius: 4px; background: linear-gradient(90deg, #6366f1, #3b82f6); transition: width 0.4s ease; }
+    @media print { body { background: white !important; } .no-print { display: none !important; } }
+  </style>
+</head>
+<body class="h-full text-gray-200 overflow-hidden">
+  <div class="flex h-full">
+    <aside id="sidebar" class="w-[260px] min-w-[260px] h-full glass border-r border-indigo-500/10 flex flex-col no-print z-30">
+      <div class="px-5 py-5 border-b border-indigo-500/10">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-blue-500 flex items-center justify-center text-lg shadow-lg shadow-indigo-500/30 shrink-0" aria-hidden="true">📊</div>
+          <div class="min-w-0">
+            <h1 class="text-sm font-bold text-white tracking-wide truncate">D&amp;D ai</h1>
+            <p class="text-[10px] text-indigo-400 font-medium tracking-widest uppercase">Бизнес-кабинет</p>
+          </div>
+        </div>
+      </div>
+      <nav class="flex-1 py-3 px-2 space-y-1 overflow-y-auto">
+        <button type="button" onclick="switchSection('dashboard')" class="sidebar-item active w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm text-left" data-section="dashboard"><span class="text-lg">📊</span><span>Главная</span></button>
+        <button type="button" onclick="switchSection('chat')" class="sidebar-item w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm text-left" data-section="chat"><span class="text-lg">💬</span><span>Чат с экспертом</span></button>
+        <button type="button" onclick="switchSection('ideas')" class="sidebar-item w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm text-left" data-section="ideas"><span class="text-lg">💡</span><span>Генератор идей</span></button>
+        <button type="button" onclick="switchSection('competitors')" class="sidebar-item w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm text-left" data-section="competitors"><span class="text-lg">🏢</span><span>Анализ конкурентов</span></button>
+        <button type="button" onclick="switchSection('marketing')" class="sidebar-item w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm text-left" data-section="marketing"><span class="text-lg">📣</span><span>Маркетинг</span></button>
+        <button type="button" onclick="switchSection('growth')" class="sidebar-item w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm text-left" data-section="growth"><span class="text-lg">📈</span><span>Трекер роста</span></button>
+        <button type="button" onclick="switchSection('swot')" class="sidebar-item w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm text-left" data-section="swot"><span class="text-lg">⚖️</span><span>SWOT-анализ</span></button>
+        <button type="button" onclick="switchSection('plan')" class="sidebar-item w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm text-left" data-section="plan"><span class="text-lg">📋</span><span>Бизнес-план</span></button>
+        <button type="button" onclick="switchSection('notes')" class="sidebar-item w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm text-left" data-section="notes"><span class="text-lg">📝</span><span>Заметки</span></button>
+        <button type="button" onclick="switchSection('finance')" class="sidebar-item w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm text-left" data-section="finance"><span class="text-lg">💰</span><span>Финансы</span></button>
+      </nav>
+    </aside>
+
+    <main class="flex-1 h-full overflow-hidden flex flex-col">
+      <header class="h-14 min-h-[56px] glass border-b border-indigo-500/10 flex items-center justify-between px-6 no-print">
+        <div class="flex items-center gap-3">
+          <button type="button" onclick="toggleSidebar()" class="lg:hidden text-gray-400 hover:text-white transition">
+            <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+          </button>
+          <h2 id="sectionTitle" class="text-sm font-semibold text-white">Главная</h2>
+        </div>
+        <div class="flex items-center gap-4">
+          <div class="flex items-center gap-2 text-xs text-gray-500">
+            <span class="w-2 h-2 rounded-full bg-emerald-500 status-pulse inline-block"></span>
+            <span id="appStatusText">Готово к работе</span>
+          </div>
+          <div class="flex items-center gap-3">
+            <button type="button" onclick="toggleTheme()" class="text-2xl leading-none text-gray-400 hover:text-white transition p-1" title="Сменить тему">🌓</button>
+            <button type="button" onclick="clearCurrentSectionData()" class="text-2xl leading-none text-gray-400 hover:text-red-400 transition p-1" title="Очистить раздел">🗑️</button>
+          </div>
+        </div>
+      </header>
+
+      <div class="flex-1 overflow-y-auto p-6" id="contentArea">
+        <section id="sec-dashboard" class="section-content fade-in space-y-4">
+          <div class="glass neon-border rounded-2xl p-6">
+            <div class="text-2xl font-bold text-white mb-2">Добро пожаловать в D&amp;D ai</div>
+            <p class="text-sm text-gray-400 leading-relaxed">Ваш интеллектуальный помощник для запуска, развития и масштабирования бизнеса.<br>Используйте возможности искусственного интеллекта для поиска идей, расчёта финансов, маркетинга и анализа рынка.</p>
+          </div>
+          <div class="glass neon-border rounded-2xl p-5">
+            <div class="text-xs text-indigo-400 font-semibold uppercase tracking-wider mb-2">💡 Совет дня</div>
+            <p id="dashboardTipText" class="text-sm text-gray-300 leading-relaxed">Совет дня: перед запуском бизнеса протестируйте идею на небольшой аудитории, чтобы понять реальный спрос и снизить риски.</p>
+          </div>
+          <div class="glass neon-border rounded-2xl p-5">
+            <h3 class="text-sm font-semibold text-white mb-3">Ваш бизнес сегодня</h3>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-4">
+              <div>
+                <label class="text-[10px] text-gray-500 block mb-1">Доход (₽)</label>
+                <input id="dashIncome" type="number" min="0" class="w-full glass rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500/40" oninput="updateDashboardDisplay()">
+              </div>
+              <div>
+                <label class="text-[10px] text-gray-500 block mb-1">Расходы (₽)</label>
+                <input id="dashExpense" type="number" min="0" class="w-full glass rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500/40" oninput="updateDashboardDisplay()">
+              </div>
+              <div>
+                <label class="text-[10px] text-gray-500 block mb-1">Цель месяца (₽)</label>
+                <input id="dashGoal" type="number" min="0" class="w-full glass rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500/40" oninput="updateDashboardDisplay()">
+              </div>
+            </div>
+            <button type="button" onclick="saveDashboardMetrics()" class="text-xs px-4 py-2 glass-light rounded-xl text-indigo-300 hover:bg-indigo-500/15 transition mb-4">Сохранить показатели</button>
+            <ul id="dashboardProgressList" class="text-sm text-gray-300 space-y-1.5">
+              <li>• 💰 Доход: <span id="dashViewIncome">15 000</span> ₽</li>
+              <li>• 📉 Расходы: <span id="dashViewExpense">4 000</span> ₽</li>
+              <li>• 📈 Прибыль: <span id="dashViewProfit">11 000</span> ₽</li>
+              <li>• 🎯 Цель месяца: <span id="dashViewGoal">20 000</span> ₽</li>
+              <li>• 🚀 Выполнено: <span id="dashViewPct">55</span>%</li>
+            </ul>
+            <div class="mt-3 h-2 rounded-full bg-black/20 overflow-hidden">
+              <div id="dashProgressBar" class="growth-bar" style="width: 55%"></div>
+            </div>
+          </div>
+          <div class="glass neon-border rounded-2xl p-5">
+            <h3 class="text-sm font-semibold text-white mb-3">Быстрые действия</h3>
+            <div class="flex flex-wrap gap-2">
+              <button type="button" onclick="quickGo('ideas')" class="text-xs sm:text-sm px-4 py-2.5 rounded-xl glass-light text-indigo-300 hover:bg-indigo-500/15 transition text-left">🚀 Создать бизнес-идею</button>
+              <button type="button" onclick="quickGo('finance')" class="text-xs sm:text-sm px-4 py-2.5 rounded-xl glass-light text-indigo-300 hover:bg-indigo-500/15 transition text-left">📊 Посчитать прибыль</button>
+              <button type="button" onclick="quickGo('marketing')" class="text-xs sm:text-sm px-4 py-2.5 rounded-xl glass-light text-indigo-300 hover:bg-indigo-500/15 transition text-left">📣 Создать рекламу</button>
+              <button type="button" onclick="quickGo('competitors')" class="text-xs sm:text-sm px-4 py-2.5 rounded-xl glass-light text-indigo-300 hover:bg-indigo-500/15 transition text-left">🏢 Проанализировать конкурентов</button>
+            </div>
+          </div>
+          <div class="glass neon-border rounded-2xl p-5">
+            <h3 class="text-sm font-semibold text-white mb-2">Главная задача дня</h3>
+            <p class="text-sm text-gray-400 leading-relaxed">Сосредоточьтесь на привлечении первых клиентов и тестировании рекламных каналов.<br>Сегодня рекомендуется проверить минимум 2 способа продвижения.</p>
+          </div>
+          <div class="glass neon-border rounded-2xl p-5">
+            <h3 class="text-sm font-semibold text-white mb-2">Рекомендация от AI</h3>
+            <p id="dashboardAiRec" class="text-sm text-gray-400 leading-relaxed">На основе ваших данных наиболее перспективным направлением является развитие цифровых услуг и продвижение через короткие видеоформаты.</p>
+          </div>
+        </section>
+
+        <section id="sec-chat" class="section-content hidden">
+          <div class="flex flex-col h-full" style="min-height: calc(100vh - 170px);">
+            <div id="chatMessages" class="flex-1 overflow-y-auto space-y-4 mb-4 pr-2"></div>
+            <div id="chatTyping" class="hidden mb-4 fade-in-simple">
+              <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-blue-500 flex items-center justify-center text-sm" aria-hidden="true">⋯</div>
+                <div class="glass rounded-2xl rounded-bl-sm px-4 py-3 flex items-center gap-1.5">
+                  <div class="typing-dot w-2 h-2 rounded-full bg-indigo-400"></div>
+                  <div class="typing-dot w-2 h-2 rounded-full bg-indigo-400"></div>
+                  <div class="typing-dot w-2 h-2 rounded-full bg-indigo-400"></div>
+                </div>
+                <span class="text-xs text-gray-600">Готовим ответ…</span>
+              </div>
+            </div>
+            <div id="quickQuestions" class="flex flex-wrap gap-2 mb-3">
+              <button type="button" onclick="sendQuickQuestion('Как сократить расходы в малом бизнесе?')" class="text-xs glass-light px-3 py-1.5 rounded-full text-indigo-300 hover:bg-indigo-500/15 transition">Как сократить расходы?</button>
+              <button type="button" onclick="sendQuickQuestion('Какие бизнес-идеи актуальны для школьника?')" class="text-xs glass-light px-3 py-1.5 rounded-full text-indigo-300 hover:bg-indigo-500/15 transition">Идеи для школьника?</button>
+              <button type="button" onclick="sendQuickQuestion('Как рассчитать рентабельность?')" class="text-xs glass-light px-3 py-1.5 rounded-full text-indigo-300 hover:bg-indigo-500/15 transition">Как рассчитать рентабельность?</button>
+              <button type="button" onclick="sendQuickQuestion('Что такое оффер и как его составить?')" class="text-xs glass-light px-3 py-1.5 rounded-full text-indigo-300 hover:bg-indigo-500/15 transition">Что такое оффер?</button>
+            </div>
+            <div class="flex gap-3">
+              <input id="chatInput" type="text" placeholder="Задайте вопрос о бизнесе, маркетинге, финансах..." class="flex-1 glass rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-indigo-500/40 transition" onkeydown="if(event.key==='Enter')sendChatMessage()">
+              <button type="button" onclick="sendChatMessage()" class="px-5 py-3 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 rounded-xl text-sm font-medium text-white transition shadow-lg shadow-indigo-500/20">Отправить</button>
+            </div>
+          </div>
+        </section>
+
+        <section id="sec-ideas" class="section-content hidden">
+          <div class="max-w-3xl mx-auto">
+            <div class="glass neon-border rounded-2xl p-6 mb-6">
+              <h3 class="text-lg font-bold text-white mb-2">💡 Генератор бизнес-идей</h3>
+              <p class="text-sm text-gray-400 mb-5">Опишите нишу или продукт — учтём тип бизнеса, цифры и шаги запуска. Город и регион повышают точность.</p>
+              <div class="flex flex-col sm:flex-row gap-3 mb-3">
+                <input id="ideasInput" type="text" placeholder="Ниша: например доставка обедов, мерч, курсы..." class="flex-1 glass rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-indigo-500/40 transition" onkeydown="if(event.key==='Enter')generateIdea()">
+                <input id="ideasCity" type="text" placeholder="Город / регион (необязательно)" class="sm:w-56 glass rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-indigo-500/40 transition" onkeydown="if(event.key==='Enter')generateIdea()">
+              </div>
+              <div class="flex gap-3 mb-4">
+                <button type="button" onclick="generateIdea()" id="ideasBtn" class="px-6 py-3 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 rounded-xl text-sm font-medium text-white transition shadow-lg shadow-indigo-500/20 whitespace-nowrap">⚡ Сгенерировать</button>
+              </div>
+              <div class="flex flex-wrap gap-2">
+                <span class="text-xs text-gray-500">Быстрый выбор:</span>
+                <button type="button" onclick="document.getElementById('ideasInput').value='уличная еда';generateIdea()" class="text-xs glass-light px-3 py-1 rounded-full text-indigo-300 hover:bg-indigo-500/15 transition">🍔 Еда</button>
+                <button type="button" onclick="document.getElementById('ideasInput').value='одежда и мерч';generateIdea()" class="text-xs glass-light px-3 py-1 rounded-full text-indigo-300 hover:bg-indigo-500/15 transition">👕 Одежда</button>
+                <button type="button" onclick="document.getElementById('ideasInput').value='игры';generateIdea()" class="text-xs glass-light px-3 py-1 rounded-full text-indigo-300 hover:bg-indigo-500/15 transition">🎮 Игры</button>
+                <button type="button" onclick="document.getElementById('ideasInput').value='контент и соцсети';generateIdea()" class="text-xs glass-light px-3 py-1 rounded-full text-indigo-300 hover:bg-indigo-500/15 transition">📱 Контент</button>
+              </div>
+            </div>
+            <div id="ideasLoading" class="hidden space-y-4 mb-6">
+              <div class="glass rounded-2xl p-6">
+                <div class="skeleton h-6 w-48 mb-4"></div>
+                <div class="skeleton h-4 w-full mb-3"></div>
+                <div class="skeleton h-4 w-3/4 mb-3"></div>
+                <div class="skeleton h-4 w-5/6 mb-6"></div>
+                <div class="grid grid-cols-3 gap-4">
+                  <div class="skeleton h-20"></div>
+                  <div class="skeleton h-20"></div>
+                  <div class="skeleton h-20"></div>
+                </div>
+              </div>
+            </div>
+            <div id="ideasResult" class="space-y-4"></div>
+          </div>
+        </section>
+
+        <section id="sec-plan" class="section-content hidden">
+          <div class="max-w-3xl mx-auto">
+            <div class="glass neon-border rounded-2xl p-6 mb-6">
+              <h3 class="text-lg font-bold text-white mb-2">📋 Конструктор бизнес-плана</h3>
+              <p class="text-sm text-gray-400 mb-5">Укажите тему и детали — документ соберётся под вашу нишу (еда, услуги, обучение, магазин и т.д.). Просмотр, копирование и файл — в списке и в окне просмотра.</p>
+              <div class="space-y-4 mb-4">
+                <div>
+                  <label class="text-xs text-gray-400 block mb-1">Название / тема проекта *</label>
+                  <input id="planInput" type="text" placeholder="Например: доставка обедов в офисы" class="w-full glass rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-indigo-500/40 transition" onkeydown="if(event.key==='Enter')generatePlan()">
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label class="text-xs text-gray-400 block mb-1">Стартовый бюджет (₽), если есть</label>
+                    <input id="planBudget" type="number" min="0" placeholder="80000" class="w-full glass rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-indigo-500/40 transition">
+                  </div>
+                  <div>
+                    <label class="text-xs text-gray-400 block mb-1">Где продаёте</label>
+                    <select id="planChannel" class="w-full glass rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-indigo-500/40 transition bg-[rgb(15,15,30)]">
+                      <option value="online">Онлайн</option>
+                      <option value="offline">Оффлайн (точка / город)</option>
+                      <option value="both">Онлайн + оффлайн</option>
+                    </select>
+                  </div>
+                </div>
+                <div>
+                  <label class="text-xs text-gray-400 block mb-1">Целевая аудитория (необязательно)</label>
+                  <input id="planAudience" type="text" placeholder="Например: сотрудники IT-офисов, 25–40 лет" class="w-full glass rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-indigo-500/40 transition">
+                </div>
+              </div>
+              <div class="flex flex-wrap gap-2 mb-4">
+                <span class="text-xs text-gray-500 w-full sm:w-auto">Шаблоны:</span>
+                <button type="button" onclick="fillPlanTemplate('кофе с собой у метро')" class="text-xs glass-light px-3 py-1 rounded-full text-indigo-300 hover:bg-indigo-500/15 transition">Кофе</button>
+                <button type="button" onclick="fillPlanTemplate('доставка здорового питания')" class="text-xs glass-light px-3 py-1 rounded-full text-indigo-300 hover:bg-indigo-500/15 transition">Доставка еды</button>
+                <button type="button" onclick="fillPlanTemplate('онлайн-курс по английскому для школьников')" class="text-xs glass-light px-3 py-1 rounded-full text-indigo-300 hover:bg-indigo-500/15 transition">Онлайн-курс</button>
+                <button type="button" onclick="fillPlanTemplate('винтажная одежда и перепродажа на маркетплейсе')" class="text-xs glass-light px-3 py-1 rounded-full text-indigo-300 hover:bg-indigo-500/15 transition">Одежда</button>
+              </div>
+              <button type="button" onclick="generatePlan()" id="planBtn" class="w-full sm:w-auto px-6 py-3 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 rounded-xl text-sm font-medium text-white transition shadow-lg shadow-indigo-500/20">📄 Собрать план</button>
+            </div>
+            <div id="planLoading" class="hidden space-y-4 mb-6">
+              <div class="glass rounded-2xl p-6">
+                <div class="flex items-center gap-3 mb-6">
+                  <div class="skeleton h-8 w-8 rounded-lg"></div>
+                  <div class="skeleton h-6 w-64"></div>
+                </div>
+                <div class="skeleton h-4 w-full mb-3"></div>
+                <div class="skeleton h-4 w-5/6 mb-3"></div>
+                <div class="skeleton h-4 w-4/6 mb-6"></div>
+                <div class="grid grid-cols-2 gap-4">
+                  <div class="skeleton h-32"></div>
+                  <div class="skeleton h-32"></div>
+                </div>
+              </div>
+            </div>
+            <div id="planResult"></div>
+          </div>
+        </section>
+
+        <section id="sec-competitors" class="section-content hidden">
+          <div class="max-w-3xl mx-auto">
+            <div class="glass neon-border rounded-2xl p-6 mb-6">
+              <h3 class="text-lg font-bold text-white mb-2">🏢 AI-анализ конкурентов</h3>
+              <p class="text-sm text-gray-400 mb-5">Укажите нишу и до 5 конкурентов (по одному в строке) — получите сравнение позиционирования, цен и идей отстройки.</p>
+              <div class="space-y-4 mb-4">
+                <div>
+                  <label class="text-xs text-gray-400 block mb-1">Ваша ниша / продукт *</label>
+                  <input id="compNiche" type="text" placeholder="Например: кофе с собой, онлайн-репетиторство" class="w-full glass rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-indigo-500/40 transition">
+                </div>
+                <div>
+                  <label class="text-xs text-gray-400 block mb-1">Конкуренты (имя или ссылка, по строке)</label>
+                  <textarea id="compList" rows="5" placeholder="Кофейня X&#10;Приложение Y" class="w-full glass rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-indigo-500/40 transition resize-y"></textarea>
+                </div>
+              </div>
+              <button type="button" onclick="runCompetitorAnalysis()" id="compBtn" class="px-6 py-3 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 rounded-xl text-sm font-medium text-white transition shadow-lg shadow-indigo-500/20">🔍 Собрать анализ</button>
+            </div>
+            <div id="compResult" class="glass neon-border rounded-2xl p-6 min-h-[120px]">
+              <p class="text-sm text-gray-500 text-center py-6">Заполните форму и нажмите «Собрать анализ».</p>
+            </div>
+          </div>
+        </section>
+
+        <section id="sec-marketing" class="section-content hidden">
+          <div class="max-w-3xl mx-auto">
+            <div class="glass neon-border rounded-2xl p-6 mb-6">
+              <h3 class="text-lg font-bold text-white mb-2">📣 Маркетинг AI</h3>
+              <p class="text-sm text-gray-400 mb-5">Краткий пакет: оффер, УТП, воронка и идеи креативов под ваш продукт.</p>
+              <div class="space-y-4 mb-4">
+                <div>
+                  <label class="text-xs text-gray-400 block mb-1">Продукт / услуга *</label>
+                  <input id="mktProduct" type="text" placeholder="Например: подписка на дизайн для стартапов" class="w-full glass rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-indigo-500/40 transition">
+                </div>
+                <div>
+                  <label class="text-xs text-gray-400 block mb-1">Аудитория</label>
+                  <input id="mktAudience" type="text" placeholder="Например: фаундеры B2B, 25–45 лет" class="w-full glass rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-indigo-500/40 transition">
+                </div>
+                <div>
+                  <label class="text-xs text-gray-400 block mb-1">Тон коммуникации</label>
+                  <select id="mktTone" class="w-full glass rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-indigo-500/40 transition bg-[rgb(15,15,30)]">
+                    <option value="pro">Деловой, экспертный</option>
+                    <option value="friendly">Дружелюбный, простой</option>
+                    <option value="bold">Смелый, провокационный</option>
+                  </select>
+                </div>
+              </div>
+              <button type="button" onclick="runMarketingPack()" id="mktBtn" class="px-6 py-3 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 rounded-xl text-sm font-medium text-white transition shadow-lg shadow-indigo-500/20">✨ Сгенерировать пакет</button>
+            </div>
+            <div id="mktResult" class="glass neon-border rounded-2xl p-6 min-h-[120px]">
+              <p class="text-sm text-gray-500 text-center py-6">Введите продукт и нажмите «Сгенерировать пакет».</p>
+            </div>
+          </div>
+        </section>
+
+        <section id="sec-growth" class="section-content hidden">
+          <div class="max-w-3xl mx-auto">
+            <div class="glass neon-border rounded-2xl p-6 mb-6">
+              <h3 class="text-lg font-bold text-white mb-2">📈 Трекер роста</h3>
+              <p class="text-sm text-gray-400 mb-5">Фиксируйте неделю, выручку и лиды — данные хранятся в браузере.</p>
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+                <div>
+                  <label class="text-xs text-gray-400 block mb-1">Период (неделя / дата)</label>
+                  <input id="growthLabel" type="text" placeholder="Неделя 12, апрель" class="w-full glass rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-indigo-500/40 transition">
+                </div>
+                <div>
+                  <label class="text-xs text-gray-400 block mb-1">Выручка (₽)</label>
+                  <input id="growthRevenue" type="number" min="0" placeholder="120000" class="w-full glass rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-indigo-500/40 transition">
+                </div>
+                <div>
+                  <label class="text-xs text-gray-400 block mb-1">Лиды / заявки</label>
+                  <input id="growthLeads" type="number" min="0" placeholder="24" class="w-full glass rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-indigo-500/40 transition">
+                </div>
+              </div>
+              <button type="button" onclick="addGrowthEntry()" class="px-6 py-3 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 rounded-xl text-sm font-medium text-white transition shadow-lg shadow-indigo-500/20">➕ Добавить запись</button>
+            </div>
+            <div id="growthTableWrap" class="glass neon-border rounded-2xl p-6 overflow-x-auto">
+              <p id="growthEmpty" class="text-sm text-gray-500 text-center py-4">Пока нет записей — добавьте первую неделю.</p>
+              <table id="growthTable" class="hidden w-full text-sm text-left text-gray-300">
+                <thead><tr class="text-xs text-gray-500 border-b border-indigo-500/10"><th class="py-2 pr-4">Период</th><th class="py-2 pr-4">Выручка</th><th class="py-2 pr-4">Лиды</th><th class="py-2"></th></tr></thead>
+                <tbody id="growthTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <section id="sec-swot" class="section-content hidden">
+          <div class="max-w-3xl mx-auto">
+            <div class="glass neon-border rounded-2xl p-6 mb-6">
+              <h3 class="text-lg font-bold text-white mb-2">⚖️ SWOT-анализ</h3>
+              <p class="text-sm text-gray-400 mb-5">Опишите проект — сформируем сильные и слабые стороны, возможности и угрозы.</p>
+              <div class="space-y-4 mb-4">
+                <div>
+                  <label class="text-xs text-gray-400 block mb-1">Название проекта *</label>
+                  <input id="swotName" type="text" placeholder="Например: студия мобильной разработки" class="w-full glass rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-indigo-500/40 transition">
+                </div>
+                <div>
+                  <label class="text-xs text-gray-400 block mb-1">Сфера и контекст (1–2 предложения)</label>
+                  <textarea id="swotContext" rows="4" placeholder="Кому продаёте, на каком этапе, главное ограничение (бюджет, время, команда)..." class="w-full glass rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-indigo-500/40 transition resize-y"></textarea>
+                </div>
+              </div>
+              <button type="button" onclick="runSwot()" id="swotBtn" class="px-6 py-3 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 rounded-xl text-sm font-medium text-white transition shadow-lg shadow-indigo-500/20">📊 Построить SWOT</button>
+            </div>
+            <div id="swotResult" class="glass neon-border rounded-2xl p-6 min-h-[120px]">
+              <p class="text-sm text-gray-500 text-center py-6">Заполните поля и нажмите «Построить SWOT».</p>
+            </div>
+          </div>
+        </section>
+
+        <section id="sec-notes" class="section-content hidden">
+          <div class="max-w-3xl mx-auto">
+            <div class="glass neon-border rounded-2xl p-6">
+              <h3 class="text-lg font-bold text-white mb-2">📝 Блокнот</h3>
+              <p class="text-sm text-gray-400 mb-4">Текст хранится только в этом браузере. Можно вести список задач, цены поставщиков, идеи для чата.</p>
+              <textarea id="notesArea" rows="16" placeholder="Пишите здесь…" class="w-full glass rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-indigo-500/40 transition resize-y min-h-[320px]"></textarea>
+              <div class="flex flex-wrap gap-3 mt-4">
+                <button type="button" onclick="saveNotes()" class="px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 rounded-xl text-sm font-medium text-white transition">💾 Сохранить</button>
+                <span id="notesSavedHint" class="text-xs text-gray-500 self-center hidden">Сохранено</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section id="sec-finance" class="section-content hidden">
+          <div class="max-w-4xl mx-auto">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div class="glass neon-border rounded-2xl p-6">
+                <h3 class="text-lg font-bold text-white mb-2">💰 Финансовый анализатор</h3>
+                <p class="text-sm text-gray-400 mb-5">Введите параметры — посчитаем окупаемость, ROI и дадим практичные рекомендации.</p>
+                <div class="space-y-4">
+                  <div>
+                    <label class="text-xs text-gray-400 block mb-1.5">Сумма вложений (₽)</label>
+                    <input id="finInvestment" type="number" placeholder="100000" value="50000" class="w-full glass rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-indigo-500/40 transition">
+                  </div>
+                  <div>
+                    <label class="text-xs text-gray-400 block mb-1.5">Ожидаемый месячный доход (₽)</label>
+                    <input id="finRevenue" type="number" placeholder="30000" value="25000" class="w-full glass rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-indigo-500/40 transition">
+                  </div>
+                  <div>
+                    <label class="text-xs text-gray-400 block mb-1.5">Месячные расходы (₽)</label>
+                    <input id="finExpenses" type="number" placeholder="15000" value="12000" class="w-full glass rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-indigo-500/40 transition">
+                  </div>
+                  <div>
+                    <label class="text-xs text-gray-400 block mb-1.5">Сфера бизнеса</label>
+                    <input id="finNiche" type="text" placeholder="Например: онлайн-магазин" value="" class="w-full glass rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-indigo-500/40 transition">
+                  </div>
+                  <button type="button" onclick="analyzeFinances()" id="finBtn" class="w-full px-6 py-3 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 rounded-xl text-sm font-medium text-white transition shadow-lg shadow-indigo-500/20">🔍 Анализировать</button>
+                </div>
+                <div class="mt-6 pt-6 border-t border-indigo-500/10">
+                  <h4 class="text-sm font-semibold text-white mb-3">📐 Калькулятор точки безубыточности</h4>
+                  <p class="text-xs text-gray-500 mb-3">Сколько единиц нужно продать, чтобы покрыть постоянные расходы.</p>
+                  <div class="space-y-3">
+                    <div>
+                      <label class="text-xs text-gray-400 block mb-1">Постоянные расходы в месяц (₽)</label>
+                      <input id="beFixed" type="number" placeholder="60000" value="60000" class="w-full glass rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-indigo-500/40 transition">
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                      <div>
+                        <label class="text-xs text-gray-400 block mb-1">Цена за 1 шт. (₽)</label>
+                        <input id="bePrice" type="number" placeholder="1500" value="1500" class="w-full glass rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-indigo-500/40 transition">
+                      </div>
+                      <div>
+                        <label class="text-xs text-gray-400 block mb-1">Переменные на 1 шт. (₽)</label>
+                        <input id="beVar" type="number" placeholder="800" value="800" class="w-full glass rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-indigo-500/40 transition">
+                      </div>
+                    </div>
+                    <button type="button" onclick="calcBreakEven()" class="w-full py-2.5 glass-light rounded-xl text-sm text-indigo-300 hover:bg-indigo-500/10 transition">Посчитать</button>
+                    <div id="beResult" class="text-sm text-gray-300 glass rounded-xl px-4 py-3 hidden"></div>
+                  </div>
+                </div>
+              </div>
+              <div>
+                <div id="finQuickStats" class="grid grid-cols-2 gap-4 mb-4">
+                  <div class="glass rounded-xl p-4 text-center">
+                    <div class="text-xs text-gray-500 mb-1">Чистая прибыль/мес</div>
+                    <div id="finStatProfit" class="text-xl font-bold text-emerald-400">—</div>
+                  </div>
+                  <div class="glass rounded-xl p-4 text-center">
+                    <div class="text-xs text-gray-500 mb-1">Окупаемость</div>
+                    <div id="finStatPayback" class="text-xl font-bold text-blue-400">—</div>
+                  </div>
+                  <div class="glass rounded-xl p-4 text-center">
+                    <div class="text-xs text-gray-500 mb-1">ROI (годовой)</div>
+                    <div id="finStatROI" class="text-xl font-bold text-purple-400">—</div>
+                  </div>
+                  <div class="glass rounded-xl p-4 text-center">
+                    <div class="text-xs text-gray-500 mb-1">Рентабельность</div>
+                    <div id="finStatMargin" class="text-xl font-bold text-indigo-400">—</div>
+                  </div>
+                </div>
+                <div id="finLoading" class="hidden glass rounded-2xl p-6">
+                  <div class="space-y-3">
+                    <div class="skeleton h-5 w-40"></div>
+                    <div class="skeleton h-4 w-full"></div>
+                    <div class="skeleton h-4 w-3/4"></div>
+                    <div class="skeleton h-4 w-5/6"></div>
+                  </div>
+                </div>
+                <div id="finResult" class="glass rounded-2xl p-6">
+                  <div class="text-center text-gray-600 text-sm py-8">
+                    <div class="text-4xl mb-3">📊</div>
+                    Введите данные и нажмите «Анализировать»<br>для прогноза и советов
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <div id="planModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 no-print" onclick="if(event.target===this)closePlanModal()">
+    <div class="bg-white rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto text-gray-900 modal-enter shadow-2xl">
+      <div class="sticky top-0 bg-white border-b px-6 py-4 flex items-center justify-between rounded-t-2xl z-10">
+        <div class="flex items-center gap-3">
+          <span class="text-base" aria-hidden="true">📋</span>
+          <span class="text-sm font-semibold">Бизнес-план — D&D</span>
+        </div>
+        <div class="flex items-center gap-2 flex-wrap justify-end">
+          <button type="button" onclick="copyPlanFromModal()" class="text-xs px-3 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-lg transition">📋 Копировать</button>
+          <button type="button" onclick="downloadPlanFromModal()" class="text-xs px-3 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-lg transition">⬇ Файл .md</button>
+          <button type="button" onclick="printPlan()" class="text-xs px-3 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-lg transition">🖨️ Печать</button>
+          <button type="button" onclick="closePlanModal()" class="text-gray-400 hover:text-gray-600 transition text-xl">&times;</button>
+        </div>
+      </div>
+      <div id="planModalContent" class="px-8 py-6"></div>
+    </div>
+  </div>
+
+  <script>
+    let currentSection = 'dashboard';
+    let chatHistory = [];
+    let ideasHistory = [];
+    let planHistory = [];
+    let financeHistory = [];
+    let growthHistory = [];
+    let currentPlanModalId = null;
+
+    const DASHBOARD_TIPS = [
+      'Совет дня: перед запуском протестируйте идею на 10–20 людях из целевой аудитории — так вы увидите реальный спрос, а не «вежливый да».',
+      'Совет дня: каждую неделю фиксируйте три цифры: выручка, валовая маржа и откуда пришли лиды.',
+      'Совет дня: один чёткий оффер с результатом и сроком сильнее пяти расплывчатых предложений.',
+      'Совет дня: заложите 15–25% бюджета на непредвиденное в первые 2 месяца после старта.',
+      'Совет дня: первому клиенту предложите пилот с понятными условиями — так быстрее появится кейс и отзыв.',
+      'Совет дня: отделите постоянные и переменные расходы — резать бизнес проще, когда видна структура.',
+      'Совет дня: выберите один главный канал продаж на тест на 2 недели; не распыляйтесь на все соцсети сразу.',
+      'Совет дня: средний чек растёт пакетами и допродажами, а не бесконечными скидками.',
+      'Совет дня: проверяйте юнит-экономику: цена минус переменные на заказ должны покрывать маркетинг и фикс.',
+      'Совет дня: договоритесь о сроке ответа клиенту (например, до 2 часов в рабочее время) — это повышает доверие.',
+      'Совет дня: ведите простую таблицу: дата, канал, заявка, сделка, сумма — без неё оптимизировать рекламу невозможно.',
+      'Совет дня: перед закупкой товара посчитайте оборачиваемость: сколько дней деньги лежат в складе.',
+      'Совет дня: для услуг оформите 3 пакета «лёгкий / стандарт / максимум» — клиенту проще выбрать.',
+      'Совет дня: раз в месяц смотрите на отзывы и возражения; из них рождаются новые офферы и FAQ.',
+      'Совет дня: не масштабируйте рекламу, пока стабильно не закрываете окупаемость на малом бюджете.',
+      'Совет дня: юридически оформляйте ключевые договорённости хотя бы актом или письмом — меньше споров.',
+      'Совет дня: выспитесь перед важными переговорами; усталость стоит дороже одной сделки.',
+      'Совет дня: если ниша перегрета, ищите узкую поднишу или другой сегмент — «для всех» не работает.',
+      'Совет дня: короткое видео с болью клиента и решением часто даёт дешевле лиды, чем абстрактный баннер.',
+      'Совет дня: настройте напоминание об оплате и статусе заказа — меньше отвалов на этапе «думаю».',
+      'Совет дня: сравните 5 конкурентов по цене, офферу и отзывам — таблица из пяти строк сэкономит недели.',
+      'Совет дня: первые продажи делайте вручную: так вы услышите язык клиента и уточните продукт.',
+      'Совет дня: ставьте дедлайны даже для «исследований» — иначе подготовка затянется на месяцы.',
+      'Совет дня: резерв на налоги и возвраты держите на отдельном «виртуальном» счёте в учёте.',
+      'Совет дня: если маржа низкая, ищите поставщика или формат с лучшими условиями, а не только режьте качество.',
+      'Совет дня: один рабочий процесс (заявка → счёт → оплата → выполнение) важнее красивого сайта на старте.',
+      'Совет дня: просите клиента порекомендовать вас сразу после удачного результата — момент тёплый.',
+      'Совет дня: учите команду отвечать на типовые возражения одними и теми же сильными фразами.',
+      'Совет дня: отключайте рекламные кабинеты, которые не дают заявок 2 недели подряд — проверьте креатив и посадочную.',
+      'Совет дня: для онлайн-школы сначала продайте курс вручную 5 людям, потом автоматизируйте воронку.',
+      'Совет дня: локальный бизнес — карты, отзывы и соседние партнёры часто эффективнее дорогого федерального таргета.',
+      'Совет дня: фиксируйте себестоимость после каждой закупки — цены поставщиков плывут незаметно.',
+      'Совет дня: не бойтесь поднять цену на 10% на новых клиентах и посмотреть на конверсию неделю.',
+      'Совет дня: шаблоны ответов в мессенджере экономят часы и снижают количество ошибок в цифрах.',
+      'Совет дня: раз в квартал пересматривайте подписки на сервисы — часто половина уже не нужна.',
+      'Совет дня: цель на месяц должна быть одной числовой; остальное — задачи к ней, а не десять целей сразу.'
+    ];
+
+    function localCalendarDayIndex() {
+      const t = new Date();
+      const start = new Date(2020, 0, 1);
+      const localMidnight = new Date(t.getFullYear(), t.getMonth(), t.getDate());
+      return Math.floor((localMidnight - start) / 86400000);
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      initTheme();
+      loadFromStorage();
+      normalizePlanHistory();
+      chatHistory = chatHistory.filter(m => {
+        const t = String(m?.text ?? '');
+        return !(m?.role === 'ai' && (t.includes('503') || t.includes('UNAVAILABLE') || t.startsWith('⚠️ **Ошибка:**')));
+      });
+      if (chatHistory.length === 0) {
+        chatHistory.push({
+          role: 'ai',
+          text: `Привет! Я консультант **D&D ai** для предпринимателей.
+
+Могу помочь с:
+- **Идеями** — ниша, ЦА, цифры запуска
+- **Финансами** — окупаемость, ROI, точка безубыточности
+- **Маркетингом** — оффер, воронка, реклама
+- **Конкурентами и SWOT** — отстройка и риски
+- **Планом** — шаги и структура
+
+Задай вопрос или выберите быстрый вариант ниже. Разделы **Анализ конкурентов**, **Маркетинг**, **Трекер роста** и **SWOT** — в меню слева.`
+        });
+      }
+      saveToStorage();
+      renderChat();
+      renderIdeas();
+      renderPlans();
+      renderFinance();
+      loadNotes();
+      initDashboard();
+      applyDailyTip();
+      renderGrowthTable();
+    });
+
+    function normalizePlanHistory() {
+      let changed = false;
+      planHistory = (planHistory || []).map((p, i) => {
+        if (p.id) return p;
+        changed = true;
+        return {
+          ...p,
+          id: `legacy_${i}_${Date.now()}`,
+          topic: p.topic || 'Проект',
+          text: p.text || ''
+        };
+      });
+      if (changed) saveToStorage();
+    }
+
+    function loadNotes() {
+      const el = document.getElementById('notesArea');
+      if (el) el.value = localStorage.getItem('dnd_notes') || '';
+    }
+    function saveNotes() {
+      const el = document.getElementById('notesArea');
+      if (!el) return;
+      localStorage.setItem('dnd_notes', el.value);
+      const hint = document.getElementById('notesSavedHint');
+      if (hint) {
+        hint.classList.remove('hidden');
+        setTimeout(() => hint.classList.add('hidden'), 1600);
+      }
+      setAppStatus('Заметки сохранены', 'ready');
+    }
+
+    function fillPlanTemplate(text) {
+      document.getElementById('planInput').value = text;
+      document.getElementById('planInput').focus();
+    }
+
+    function calcBreakEven() {
+      const fixed = parseFloat(document.getElementById('beFixed').value) || 0;
+      const price = parseFloat(document.getElementById('bePrice').value) || 0;
+      const variable = parseFloat(document.getElementById('beVar').value) || 0;
+      const el = document.getElementById('beResult');
+      const margin = price - variable;
+      el.classList.remove('hidden');
+      if (fixed <= 0 || price <= 0) {
+        el.innerHTML = '<span class="text-amber-400">Укажите постоянные расходы и цену.</span>';
+        return;
+      }
+      if (margin <= 0) {
+        el.innerHTML = '<span class="text-red-400">Маржа с единицы должна быть больше нуля (цена &gt; переменные расходы).</span>';
+        return;
+      }
+      const units = Math.ceil(fixed / margin);
+      el.innerHTML = `Маржа с единицы: <strong class="text-emerald-400">${margin.toLocaleString('ru-RU')} ₽</strong>. Безубыточность при текущих постоянных: <strong class="text-indigo-300">${units.toLocaleString('ru-RU')}</strong> шт. в месяц.`;
+    }
+
+    function initTheme() {
+      const saved = localStorage.getItem('dnd_theme') || localStorage.getItem('ai_theme');
+      document.documentElement.dataset.theme = saved === 'light' ? 'light' : 'dark';
+    }
+    function toggleTheme() {
+      const next = document.documentElement.dataset.theme === 'light' ? 'dark' : 'light';
+      document.documentElement.dataset.theme = next;
+      localStorage.setItem('dnd_theme', next);
+    }
+
+    function saveToStorage() {
+      localStorage.setItem('dnd_copilot_chat', JSON.stringify(chatHistory));
+      localStorage.setItem('dnd_copilot_ideas', JSON.stringify(ideasHistory));
+      localStorage.setItem('dnd_copilot_plans', JSON.stringify(planHistory));
+      localStorage.setItem('dnd_copilot_finance', JSON.stringify(financeHistory));
+      localStorage.setItem('dnd_growth', JSON.stringify(growthHistory));
+    }
+    function loadFromStorage() {
+      try {
+        const c = localStorage.getItem('dnd_copilot_chat') || localStorage.getItem('ai_copilot_chat');
+        if (c) chatHistory = JSON.parse(c);
+        const i = localStorage.getItem('dnd_copilot_ideas') || localStorage.getItem('ai_copilot_ideas');
+        if (i) ideasHistory = JSON.parse(i);
+        const p = localStorage.getItem('dnd_copilot_plans') || localStorage.getItem('ai_copilot_plans');
+        if (p) planHistory = JSON.parse(p);
+        const f = localStorage.getItem('dnd_copilot_finance') || localStorage.getItem('ai_copilot_finance');
+        if (f) financeHistory = JSON.parse(f);
+        const g = localStorage.getItem('dnd_growth');
+        if (g) growthHistory = JSON.parse(g);
+        if (!Array.isArray(growthHistory)) growthHistory = [];
+      } catch (e) { console.warn(e); }
+    }
+
+    function applyDailyTip() {
+      const el = document.getElementById('dashboardTipText');
+      if (!el) return;
+      const idx = localCalendarDayIndex() % DASHBOARD_TIPS.length;
+      el.textContent = DASHBOARD_TIPS[idx];
+    }
+
+    function initDashboard() {
+      const def = { income: 15000, expense: 4000, goal: 20000 };
+      let m = { ...def };
+      try {
+        const s = localStorage.getItem('dnd_dashboard_metrics');
+        if (s) m = { ...def, ...JSON.parse(s) };
+      } catch (e) { console.warn(e); }
+      const inc = document.getElementById('dashIncome');
+      const exp = document.getElementById('dashExpense');
+      const goal = document.getElementById('dashGoal');
+      if (inc) inc.value = m.income;
+      if (exp) exp.value = m.expense;
+      if (goal) goal.value = m.goal;
+      updateDashboardDisplay();
+    }
+
+    function updateDashboardDisplay() {
+      const income = parseFloat(document.getElementById('dashIncome')?.value) || 0;
+      const expense = parseFloat(document.getElementById('dashExpense')?.value) || 0;
+      const goal = parseFloat(document.getElementById('dashGoal')?.value) || 0;
+      const profit = income - expense;
+      const pct = goal > 0 ? Math.min(100, Math.max(0, Math.round((profit / goal) * 100))) : 0;
+      const set = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
+      set('dashViewIncome', income.toLocaleString('ru-RU'));
+      set('dashViewExpense', expense.toLocaleString('ru-RU'));
+      set('dashViewProfit', profit.toLocaleString('ru-RU'));
+      set('dashViewGoal', goal.toLocaleString('ru-RU'));
+      set('dashViewPct', String(pct));
+      const bar = document.getElementById('dashProgressBar');
+      if (bar) bar.style.width = `${pct}%`;
+      const rec = document.getElementById('dashboardAiRec');
+      if (rec) {
+        if (pct >= 85) rec.textContent = 'Отличный темп: закрепите каналы, которые дали результат, и масштабируйте рекламу с контролем юнит-экономики.';
+        else if (pct >= 50) rec.textContent = 'На основе ваших данных наиболее перспективным направлением является развитие цифровых услуг и продвижение через короткие видеоформаты.';
+        else if (profit > 0) rec.textContent = 'Фокус: тест гипотез ЦА, два канала трафика и повышение среднего чека (апсейл, пакеты).';
+        else rec.textContent = 'Сначала сократите переменные расходы и проверьте ценообразование; затем — тест спроса на малой выборке.';
+      }
+    }
+
+    function saveDashboardMetrics() {
+      const income = parseFloat(document.getElementById('dashIncome')?.value) || 0;
+      const expense = parseFloat(document.getElementById('dashExpense')?.value) || 0;
+      const goal = parseFloat(document.getElementById('dashGoal')?.value) || 0;
+      localStorage.setItem('dnd_dashboard_metrics', JSON.stringify({ income, expense, goal }));
+      updateDashboardDisplay();
+      setAppStatus('Показатели сохранены', 'ready');
+    }
+
+    function quickGo(name) {
+      switchSection(name);
+      const sb = document.getElementById('sidebar');
+      if (sb && typeof window.matchMedia === 'function' && window.matchMedia('(max-width: 1023px)').matches) {
+        sb.classList.add('hidden');
+      }
+      const scrollEl = document.getElementById('contentArea');
+      if (scrollEl) scrollEl.scrollTop = 0;
+      const map = { ideas: 'ideasInput', finance: 'finInvestment', marketing: 'mktProduct', competitors: 'compNiche' };
+      const id = map[name];
+      if (!id) return;
+      const focusField = () => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.focus({ preventScroll: false });
+        try { el.scrollIntoView({ block: 'center', behavior: 'smooth' }); } catch (e) { el.scrollIntoView(true); }
+      };
+      requestAnimationFrame(() => requestAnimationFrame(focusField));
+      setTimeout(focusField, 80);
+    }
+    window.quickGo = quickGo;
+
+    function renderGrowthTable() {
+      const tbody = document.getElementById('growthTableBody');
+      const table = document.getElementById('growthTable');
+      const empty = document.getElementById('growthEmpty');
+      if (!tbody || !table || !empty) return;
+      tbody.innerHTML = '';
+      if (!growthHistory.length) {
+        empty.classList.remove('hidden');
+        table.classList.add('hidden');
+        return;
+      }
+      empty.classList.add('hidden');
+      table.classList.remove('hidden');
+      growthHistory.forEach((row) => {
+        const tr = document.createElement('tr');
+        tr.className = 'border-b border-indigo-500/10';
+        tr.innerHTML = `
+          <td class="py-2 pr-4">${escapeHtml(row.label)}</td>
+          <td class="py-2 pr-4">${(row.revenue || 0).toLocaleString('ru-RU')} ₽</td>
+          <td class="py-2 pr-4">${escapeHtml(String(row.leads ?? '—'))}</td>
+          <td class="py-2 text-right"><button type="button" class="text-xs text-red-400 hover:text-red-300">Удалить</button></td>`;
+        tr.querySelector('button').onclick = () => removeGrowthEntry(row.id);
+        tbody.appendChild(tr);
+      });
+    }
+
+    function addGrowthEntry() {
+      const label = document.getElementById('growthLabel')?.value.trim() || `Запись ${new Date().toLocaleDateString('ru-RU')}`;
+      const revenue = parseFloat(document.getElementById('growthRevenue')?.value) || 0;
+      const leads = document.getElementById('growthLeads')?.value.trim();
+      growthHistory.unshift({
+        id: `g_${Date.now()}`,
+        label,
+        revenue,
+        leads: leads === '' ? null : leads
+      });
+      if (growthHistory.length > 52) growthHistory = growthHistory.slice(0, 52);
+      saveToStorage();
+      renderGrowthTable();
+      document.getElementById('growthLabel').value = '';
+      document.getElementById('growthRevenue').value = '';
+      document.getElementById('growthLeads').value = '';
+      setAppStatus('Запись добавлена', 'ready');
+    }
+
+    function removeGrowthEntry(id) {
+      growthHistory = growthHistory.filter((r) => r.id !== id);
+      saveToStorage();
+      renderGrowthTable();
+    }
+
+    function buildCompetitorMarkdown(niche, competitorLines) {
+      const names = competitorLines.map((s) => s.trim()).filter(Boolean).slice(0, 8);
+      const list = names.length ? names.map((n, i) => `${i + 1}. **${n}** — ценовой уровень и оффер снять с сайта/соцсетей; зафиксировать сильные стороны.`).join('\n') : '- Добавьте 3–5 конкурентов в список — сравнение станет конкретнее.';
+      return [
+        `### Анализ конкурентов: ${niche}`,
+        '',
+        '#### Что сравнить по каждому',
+        '- Цена / пакеты / скидки',
+        '- УТП и обещание результата',
+        '- Каналы: где берут трафик',
+        '- Соцдоказательства: отзывы, кейсы',
+        '',
+        '#### Ваши конкуренты',
+        list,
+        '',
+        '#### Как отстроиться',
+        `- Узкая ниша внутри **${niche}** (скорость, гарантия, формат, география).`,
+        '- Прозрачный процесс и понятный срок — если у конкурентов размыто.',
+        '- Пилот / пробный период с чёткими условиями.',
+        '',
+        '#### Риски',
+        '- Гонка цен — выход через сервис и бандлы.',
+        '- Копирование оффера — регулярно обновляйте кейсы и процесс.'
+      ].join('\n');
+    }
+
+    function buildMarketingMarkdown(product, audience, toneKey) {
+      const tones = {
+        pro: 'деловой, без воды, акцент на цифры и процесс',
+        friendly: 'простой язык, тёплый тон, «ты»/«вы» по контексту ЦА',
+        bold: 'смелые формулировки, вызов статус-кво, чёткий призыв'
+      };
+      const tone = tones[toneKey] || tones.pro;
+      const aud = audience || 'уточните сегмент (возраст, боль, канал)';
+      return [
+        `### Маркетинг-пакет: ${product}`,
+        '',
+        `**Аудитория:** ${aud}`,
+        `**Тон:** ${tone}`,
+        '',
+        '#### Оффер (черновик)',
+        `- «${product}» — для тех, кому нужно **[результат за срок]** без **[главный страх ЦА]**.`,
+        '',
+        '#### УТП (3 варианта)',
+        '1. Быстрее / проще / прозрачнее процесс, чем у типичного решения.',
+        '2. Конкретная гарантия или пилот с понятными условиями.',
+        '3. Специализация под ваш сегмент, а не «для всех».',
+        '',
+        '#### Воронка (7 дней)',
+        '- День 1–2: лид-магнит (чек-лист, мини-гайд, короткое видео).',
+        '- День 3–4: серия полезных постов + один прямой оффер.',
+        '- День 5–7: ретаргет и дожим в мессенджер / заявка.',
+        '',
+        '#### Креативы',
+        '- Короткое видео: боль → решение → призыв.',
+        '- Карусель: «3 ошибки» / «5 шагов» по теме продукта.',
+        '- Кейс: до/после с цифрой или сроком.',
+        '',
+        '#### Метрики',
+        '- CPL, конверсия в оплату, CAC payback — хотя бы в таблице раз в неделю.'
+      ].join('\n');
+    }
+
+    function buildSwotMarkdown(name, context) {
+      const niche = inferPlanNiche(name + ' ' + context);
+      const nicheHint = {
+        food_delivery: 'логистика и маржа',
+        education: 'репутация и программа',
+        retail: 'остатки и карточка',
+        tech_product: 'онбординг и удержание в продукте',
+        beauty: 'повторные визиты и стандарты сервиса',
+        fitness: 'безопасность и удержание абонементов',
+        services: 'загрузка и стандарты',
+        creator: 'охваты и монетизация',
+        generic: 'спрос и дифференциация'
+      }[niche] || 'спрос и дифференциация';
+      return [
+        `### SWOT: ${name}`,
+        '',
+        context ? `**Контекст:** ${context}` : '',
+        '',
+        '#### Strengths (сильные стороны)',
+        `- Экспертиза и скорость запуска в нише.`,
+        `- Гибкость малой команды / личный бренд.`,
+        `- Понятный продукт и цена для первых клиентов.`,
+        '',
+        '#### Weaknesses (слабые стороны)',
+        '- Ограниченный бренд и узнаваемость на старте.',
+        '- Зависимость от 1–2 каналов продаж.',
+        '- Нехватка процессов (CRM, регламенты) при росте.',
+        '',
+        '#### Opportunities (возможности)',
+        `- Спрос на **${nicheHint}** в выбранном сегменте.`,
+        '- Партнёрства, коллаборации, нишевые площадки.',
+        '- Контент и короткие видео как недорогой тест спроса.',
+        '',
+        '#### Threats (угрозы)',
+        '- Усиление конкуренции и рост стоимости трафика.',
+        '- Изменение правил площадок / законодательства.',
+        '- Сезонность и кассовые разрывы без резерва.',
+        '',
+        '#### Следующий шаг',
+        '- Выберите 1 силу + 1 возможность на ближайшие 2 недели; 1 слабость закройте минимальным процессом.'
+      ].filter(Boolean).join('\n');
+    }
+
+    async function runCompetitorAnalysis() {
+      const niche = document.getElementById('compNiche')?.value.trim();
+      if (!niche) return;
+      const raw = document.getElementById('compList')?.value || '';
+      const lines = raw.split(/\r?\n/);
+      const btn = document.getElementById('compBtn');
+      const out = document.getElementById('compResult');
+      btn.disabled = true;
+      setAppStatus('Анализ…', 'thinking');
+      await new Promise((r) => setTimeout(r, 350));
+      const md = buildCompetitorMarkdown(niche, lines);
+      out.innerHTML = `<div class="chat-msg text-sm text-gray-300 leading-relaxed">${markdownToHtml(md)}</div>`;
+      btn.disabled = false;
+      setAppStatus('Готово к работе', 'ready');
+    }
+
+    async function runMarketingPack() {
+      const product = document.getElementById('mktProduct')?.value.trim();
+      if (!product) return;
+      const audience = document.getElementById('mktAudience')?.value.trim();
+      const tone = document.getElementById('mktTone')?.value || 'pro';
+      const btn = document.getElementById('mktBtn');
+      const out = document.getElementById('mktResult');
+      btn.disabled = true;
+      setAppStatus('Генерация…', 'thinking');
+      await new Promise((r) => setTimeout(r, 350));
+      out.innerHTML = `<div class="chat-msg text-sm text-gray-300 leading-relaxed">${markdownToHtml(buildMarketingMarkdown(product, audience, tone))}</div>`;
+      btn.disabled = false;
+      setAppStatus('Готово к работе', 'ready');
+    }
+
+    async function runSwot() {
+      const name = document.getElementById('swotName')?.value.trim();
+      if (!name) return;
+      const ctx = document.getElementById('swotContext')?.value.trim() || '';
+      const btn = document.getElementById('swotBtn');
+      const out = document.getElementById('swotResult');
+      btn.disabled = true;
+      setAppStatus('SWOT…', 'thinking');
+      await new Promise((r) => setTimeout(r, 350));
+      out.innerHTML = `<div class="chat-msg text-sm text-gray-300 leading-relaxed">${markdownToHtml(buildSwotMarkdown(name, ctx))}</div>`;
+      btn.disabled = false;
+      setAppStatus('Готово к работе', 'ready');
+    }
+
+    function normalizeText(s) {
+      return String(s || '').toLowerCase().replace(/\s+/g, ' ').trim();
+    }
+
+    function offlineChatAnswer(userText) {
+      const q = normalizeText(userText);
+      const rules = [
+        [() => q.includes('iphone') && (q.includes('ресел') || q.includes('перепрод') || q.includes('resell') || q.includes('перепродав')), () => [
+          '### Как стать реселлером iPhone (легально и аккуратно)',
+          '',
+          '- **Модель**: б/у и обмен, комиссия, аксессуары + диагностика.',
+          '- **Откуда товар**: локальные чаты и объявления — только с проверкой.',
+          '- **Проверка**: IMEI, iCloud, Face ID, батарея, следы вскрытия.',
+          '- **Маржа**: доставка, комиссия площадки, торг, гарантия 7–14 дней.',
+          '',
+          'Напишите **город** и **бюджет на партию** — подскажу точнее.'
+        ].join('\n')],
+        [() => /рентабельн|маржинальн|рентабельность/.test(q), () => [
+          '### Рентабельность и маржа',
+          '',
+          '- **Маржа с единицы** = цена − переменные расходы на единицу.',
+          '- **Рентабельность по выручке** = (выручка − все расходы) / выручка × 100%.',
+          '- Сравнивайте с нишей: в услугах часто выше, в ритейле ниже, но оборот больше.',
+          '',
+          'Пришлите **цену**, **себестоимость** и **постоянные расходы в месяц** — оценю грубо по вашим цифрам.'
+        ].join('\n')],
+        [() => /окупаем|окупаемость|payback/.test(q), () => [
+          '### Окупаемость вложений',
+          '',
+          '- **Срок окупаемости (мес.)** ≈ вложения / чистая прибыль в месяц.',
+          '- Если прибыль ≤ 0 — сначала правьте юнит-экономику и спрос.',
+          '- Заложите **15–25%** на непредвиденное в прогноз.',
+          '',
+          'Напишите **сумму вложений** и **ожидаемую прибыль/мес** — посчитаю ориентир.'
+        ].join('\n')],
+        [() => /roi|рoi|окупаемость инвест/.test(q), () => [
+          '### ROI (упрощённо)',
+          '',
+          '- **ROI за год** ≈ (прибыль в год / вложения) × 100%.',
+          '- Для сравнения проектов используйте одинаковый горизонт (год).',
+          '- Учитывайте время основателя — это тоже стоимость.',
+          '',
+          'Дайте **вложения** и **чистую прибыль в месяц** — прикину ROI.'
+        ].join('\n')],
+        [() => /оффер|offer|уникальн.*предложен/.test(q), () => [
+          '### Оффер за 5 минут',
+          '',
+          '1. **Кому** — один сегмент, не «все».',
+          '2. **Результат** — измеримый и понятный.',
+          '3. **Срок** — за сколько получит.',
+          '4. **Доказательство** — кейс, цифра, гарантия, пилот.',
+          '5. **Призыв** — один следующий шаг (заявка, тест, звонок).',
+          '',
+          'Пример: «Для владельцев кафе: +15% повторных визитов за 30 дней через программу лояльности — пилот 2 недели».'
+        ].join('\n')],
+        [() => /таргет|реклам|маркетинг|продвижен|smm|контекст/.test(q), () => [
+          '### Маркетинг: с чего начать',
+          '',
+          '- **Гипотеза ЦА** — кто платит и где живёт онлайн.',
+          '- **Один канал** на тест: короткие видео / контекст / партнёры / локально.',
+          '- **Лид-магнит** + простая воронка в мессенджер.',
+          '- **Метрики**: стоимость лида, конверсия в оплату, не только охваты.',
+          '',
+          'Опишите **продукт** и **бюджет на тест** — предложу последовательность на 7 дней.'
+        ].join('\n')],
+        [() => /конкурент|конкуренц/.test(q), () => [
+          '### Анализ конкурентов',
+          '',
+          '- Составьте таблицу: цена, оффер, каналы, отзывы, слабое место.',
+          '- Ищите **щель**: скорость, сервис, узкая ниша, гарантия.',
+          '- Не копируйте сайт — копируйте только проверенные механики.',
+          '',
+          'Откройте раздел **«Анализ конкурентов»** слева — там шаблон под ваш ввод.'
+        ].join('\n')],
+        [() => /swot|свот/.test(q), () => [
+          '### SWOT',
+          '',
+          '- **S** — что уже работает (экспертиза, скорость, цена).',
+          '- **W** — узкие места (бренд, процессы, один канал).',
+          '- **O** — тренды, партнёры, новые площадки.',
+          '- **T** — регуляторика, рост цены трафика, сезонность.',
+          '',
+          'В меню есть **SWOT-анализ** — введите проект и контекст, получите черновик матрицы.'
+        ].join('\n')],
+        [() => /самозанят|ип|налог|ооо/.test(q), () => [
+          '### Форма и налоги (общие ориентиры)',
+          '',
+          '- **Самозанятость** — простой старт, лимиты и ограничения по видам деятельности.',
+          '- **ИП** — УСН чаще всего; нужен учёт и понимание взносов.',
+          '- **ООО** — если несколько учредителей и крупные контракты.',
+          '',
+          'Уточните **страну/регион** и **оборот** — подскажу, что изучить в первую очередь (без замены консультанта).'
+        ].join('\n')],
+        [() => /wildberries|вайлдберри|озон|ozon|маркетплейс|wb\b/.test(q), () => [
+          '### Маркетплейсы',
+          '',
+          '- **Юнит-экономика**: закупка + логистика + комиссия + реклама на площадке.',
+          '- **Карточка**: фото, SEO в названии, отзывы, цена на старте конкурентная.',
+          '- **Тест**: 1–3 SKU, маленькая партия, быстрая оборачиваемость.',
+          '',
+          'Напишите **категорию** и **ориентир закупки** — обсудим маржу и риски.'
+        ].join('\n')],
+        [() => /школьник|школ|подрост|студент/.test(q), () => [
+          '### Бизнес для школьника / студента',
+          '',
+          '- **Низкий порог**: услуги (репетиторство, дизайн, монтаж), перепродажа, мерч.',
+          '- **Время**: 5–10 ч/нед — выберите один формат.',
+          '- **Риски**: не нарушайте правила площадок и возрастные ограничения.',
+          '',
+          'Что интересно: **онлайн** или **офлайн**, какой **навык** уже есть?'
+        ].join('\n')],
+        [() => /расход|эконом|сократить затрат|оптимиз/.test(q), () => [
+          '### Сокращение расходов',
+          '',
+          '- Разделите **постоянные** и **переменные** — режьте сначала необязательное.',
+          '- Подписки, реклама без ROMI, избыточный склад.',
+          '- Договоритесь о **отсрочке** с поставщиками при росте.',
+          '',
+          'Перечислите **3 крупные статьи расходов** — подскажу, что проверить первым.'
+        ].join('\n')],
+        [() => /ценообраз|цена|скидк|чек/.test(q), () => [
+          '### Цена и средний чек',
+          '',
+          '- Отталкивайтесь от **желаемой маржи** и **готовности платить ЦА** (интервью).',
+          '- **Пакеты** поднимают средний чек лучше, чем просто скидка.',
+          '- Тестируйте цену на малой выборке, а не «на глаз».',
+          '',
+          'Напишите **себестоимость** и **3 конкурента с ценами** — помогу выбрать коридор.'
+        ].join('\n')],
+        [() => /инвест|инвестор|привлечь деньги/.test(q), () => [
+          '### Инвестиции на старте',
+          '',
+          '- Сначала **traction**: выручка, лиды, пилоты — так проще разговаривать.',
+          '- Пакет: понятная модель, юнит-экономика, план на 12 месяцев.',
+          '- Друзья/семья — только с прозрачными условиями.',
+          '',
+          'Опишите **стадию** и **сколько нужно** — скажу, какой пакет документов собрать в первую очередь.'
+        ].join('\n')],
+        [() => /команда|найм|сотрудник/.test(q), () => [
+          '### Команда',
+          '',
+          '- На старте: **процессы** важнее штата.',
+          '- Аутсорс рутины (бухгалтерия, дизайн) часто дешевле ошибок.',
+          '- Найм: тестовое задание + понятный KPI на испытательный срок.',
+          '',
+          'Кого хотите нанять первым и **какую задачу** закрыть?'
+        ].join('\n')],
+        [() => /поставщик|закуп|опт/.test(q), () => [
+          '### Закупки',
+          '',
+          '- 2–3 поставщика, сравнение условий и сроков.',
+          '- Малая партия на тест, потом объём.',
+          '- Договор/УПД, прозрачные штрафы за брак.',
+          '',
+          'Какая **ниша** и **минимальная партия**, с которой готовы начать?'
+        ].join('\n')],
+        [() => /что такое|объясни|простыми словами/.test(q), () => [
+          '### Разберём термин',
+          '',
+          'Напишите **одно слово или фразу** (например: юнит-экономика, LTV, воронка, лиды) — объясню коротко и дам пример из малого бизнеса.'
+        ].join('\n')]
+      ];
+      for (const [pred, fn] of rules) {
+        try {
+          if (pred()) return fn();
+        } catch (e) { console.warn(e); }
+      }
+      return [
+        '### Разберём ваш запрос',
+        '',
+        `Вы написали: «${String(userText).slice(0, 200)}${String(userText).length > 200 ? '…' : ''}»`,
+        '',
+        'Чтобы дать точный ответ, уточните:',
+        '- **Цель** (запуск, рост, экономия, маркетинг…)',
+        '- **Ниша или продукт**',
+        '- **Бюджет и срок**',
+        '- **Город или онлайн**',
+        '',
+        'Можно воспользоваться разделами **Генератор идей**, **Финансы**, **Маркетинг**, **Конкуренты**, **SWOT** — там структурированные шаблоны.'
+      ].join('\n');
+    }
+
+    function extractIdeaKeywords(topic) {
+      return String(topic)
+        .split(/[,;|/]+|\s+—\s+|\s+-\s+/)
+        .map((s) => s.trim())
+        .filter((s) => s.length > 1)
+        .slice(0, 6);
+    }
+
+    function buildDetailedIdea(topic, city) {
+      const cleanTopic = String(topic).trim().replace(/\s+/g, ' ');
+      const niche = inferPlanNiche(cleanTopic);
+      const keywords = extractIdeaKeywords(cleanTopic);
+      const kwLine = keywords.length
+        ? `**Разбор запроса:** ${keywords.join(', ')} — ниже шаги именно под эту формулировку.`
+        : '';
+      const loc = String(city || '').trim();
+      const locLine = loc
+        ? `**Регион:** ${loc} — заложите доставку/логистику и локальную рекламу (карты, район, партнёры).`
+        : '**Регион:** не указан — добавьте город: так точнее каналы и сроки доставки.';
+      const draftName = cleanTopic.length > 45 ? cleanTopic.slice(0, 42) + '…' : cleanTopic;
+      const audienceByNiche = {
+        food_delivery: `Люди рядом с точкой продаж или в зоне доставки, кому нужно быстро и предсказуемо по **«${draftName}»**. Уточните: обеды в офис, семьи, студенты, ночной спрос.`,
+        education: `Те, у кого есть конкретный дедлайн или боль по теме **«${draftName}»** (экзамен, смена профессии, навык для работы). Сегментируйте: новички vs продвинутые.`,
+        retail: `Покупатели, которые ищут **«${draftName}»** на маркетплейсах или в соцсетях. Важны фото, отзывы, понятная гарантия и срок отправки.`,
+        tech_product: `Бизнес или частные пользователи, у которых боль решается продуктом вокруг **«${draftName}»**. Нужен чёткий сценарий «до/после» и онбординг.`,
+        beauty: `Клиенты с регулярным спросом на услуги/товары по **«${draftName}»**. Решают отзывы, мастер, гигиена, удобство записи и цена повторного визита.`,
+        fitness: `Люди с целью по здоровью/форме, которым подходит формат **«${draftName}»**. Важны дисциплина, безопасность, мотивация и понятный результат за срок.`,
+        services: `Заказчики с повторяемой задачей по теме **«${draftName}»**. Ценят срок, прозрачный объём работ и кейсы, а не общие обещания.`,
+        creator: `Аудитория, которой интересна тема **«${draftName}»**. Монетизация: реклама, партнёрки, платные продукты; сначала стабильный охват и доверие.`,
+        generic: `Сузьте ЦА для **«${draftName}»**: кто платит, какой бюджет, какой срок. Проведите 10 коротких интервью и выпишите 3 формулировки боли своими словами клиентов.`
+      };
+      const audienceText = audienceByNiche[niche] || audienceByNiche.generic;
+      const packs = {
+        food_delivery: {
+          start: '25 000–150 000 ₽ (оборудование, первая закупка, упаковка, разрешения по требованиям)',
+          unit: '250–900 ₽ за позицию или средний чек заказа — прикиньте из меню из 5 позиций',
+          margin: '35–55% до агрегаторов; с агрегатором закладывайте комиссию 15–35% в цену',
+          steps: [
+            `Сформируйте меню из 3–7 позиций под **«${draftName}»**, один явный «хит»`,
+            'Считайте себестоимость порции и минимальный заказ; зафиксируйте в таблице',
+            '10 предзаказов в чате / у знакомых с полной оплатой или залогом',
+            'Один канал: доставка, самовывоз или точка — не всё сразу'
+          ]
+        },
+        education: {
+          start: '0–45 000 ₽ (платформа, материалы, тестовый трафик)',
+          unit: '1 500–3 500 ₽/урок или модуль 4 990–19 990 ₽ — зависит от трансформации, которую обещаете',
+          margin: '60–85% на онлайне после отладки программы',
+          steps: [
+            `Опишите результат курса по **«${draftName}»** в одном измеримом предложении`,
+            'Сделайте бесплатный мини-урок или PDF на 5–7 страниц как лид-магнит',
+            '10 бесплатных диагностик 20 мин — слушайте формулировки, не продавайте в лоб',
+            'Первые 3 оплаты вручную со скидкой за отзыв и разрешение на кейс'
+          ]
+        },
+        retail: {
+          start: '15 000–250 000 ₽ (партия, фото, упаковка, этикетки)',
+          unit: 'зависит от SKU под **«${draftName}»**; посчитайте полную себестоимость с доставкой до покупателя',
+          margin: '25–55%; на маркетплейсе минус комиссия и логистика площадки',
+          steps: [
+            '2–4 SKU максимум на тест; проверьте оборачиваемость за 30 дней',
+            'Карточка: 5–7 фото, SEO в названии, честное описание и сроки',
+            'Таблица остатков и себестоимости с первой продажи',
+            'Реклама с лимитом; отключайте, если нет добавок в корзину за 5–7 дней'
+          ]
+        },
+        tech_product: {
+          start: '30 000–400 000 ₽ (разработка MVP, домен, базовая инфраструктура)',
+          unit: 'подписка / лицензия / разовый внедрение — выберите одну модель для старта',
+          margin: '40–80% после выхода на платящих; до этого учитывайте время разработки',
+          steps: [
+            `Опишите одну «боль» пользователя, которую закрывает **«${draftName}»**, без списка из 20 функций`,
+            'MVP: 1 сценарий end-to-end, остальное в бэклог',
+            '5 пилотных клиентов с письменной обратной связью каждую неделю',
+            'Документация «как начать за 10 минут» и шаблон поддержки'
+          ]
+        },
+        beauty: {
+          start: '80 000–350 000 ₽ (оборудование, расходники, мебель, санобработка — по формату)',
+          unit: 'услуга + retail по возможности; средний чек и частота визита — ключ к прибыли',
+          margin: '35–65% после загрузки мастеров; на старте считайте простой',
+          steps: [
+            `Прайс и 3 пакета под **«${draftName}»** с понятной разницей`,
+            'Онлайн-запись и напоминания; регламент отмены',
+            '10 модельных клиентов или скидка за честный отзыв с фото (с согласия)',
+            'Партнёрства с смежными точками в радиусе 500 м – 2 км'
+          ]
+        },
+        fitness: {
+          start: '50 000–200 000 ₽ (зал/аренда, страховка, минимальный инвентарь, сертификация по норме)',
+          unit: 'абонемент, пакет тренировок, онлайн-сопровождение — одна основная модель на старте',
+          margin: '40–70% при стабильной загрузке слотов',
+          steps: [
+            `Программа на 4–8 недель с измеримым результатом для **«${draftName}»**`,
+            'Пробная тренировка или неделя со скидкой с чёткими правилами',
+            'Договор и мед. ограничения проговорите до оплаты',
+            'Набор через рефералки и локальные чаты, не только таргет'
+          ]
+        },
+        services: {
+          start: '5 000–90 000 ₽ (инструменты, первые лиды, простой сайт/лендинг)',
+          unit: 'пакеты с границами объёма и срока; почасовку оставьте для допработ',
+          margin: '40–75% при отлаженном процессе',
+          steps: [
+            `Бриф на 1 странице для услуги **«${draftName}»**`,
+            'Календарь, шаблоны КП и акта — до первого платного клиента',
+            '3–5 пилотов: цена ниже рынка за отзыв и разрешение на публикацию кейса',
+            'Регламент: заявка → согласование → предоплата → работа → акт'
+          ]
+        },
+        creator: {
+          start: '10 000–150 000 ₽ (оборудование по необходимости, софт, тест продвижения)',
+          unit: 'реклама, интеграции, платный продукт, консультации — выберите один поток монетизации на квартал',
+          margin: 'зависит от ниши; учитывайте часы на производство контента',
+          steps: [
+            `Контент-план на 14 дней вокруг **«${draftName}»** с рубриками и CTA`,
+            'Лид-магнит (чек-лист, шаблон) и ссылка в профиле',
+            'Коллаборации с 2–3 смежными авторами',
+            'Еженедельно: что сработало по заявкам/продажам, а не только охваты'
+          ]
+        },
+        generic: {
+          start: '0–60 000 ₽ под MVP и проверку спроса',
+          unit: 'средний чек — из 5 интервью + медиана цен 3 конкурентов',
+          margin: 'ориентир 30–60% до стабильных объёмов',
+          steps: [
+            `Сформулируйте гипотезу: кто купит **«${draftName}»** в первую очередь и зачем`,
+            '10 разговоров по 15 минут, 3 вопроса: боль, бюджет, альтернатива',
+            'Лендинг из 5 блоков или пост + форма в мессенджер',
+            'Первые сделки вручную с фиксацией возражений'
+          ]
+        }
+      };
+      const p = packs[niche] || packs.generic;
+      return [
+        `### 🎯 Проект (черновик): ${draftName}`,
+        kwLine,
+        locLine,
+        '',
+        '### 💡 Суть и формат',
+        `- Продукт/услуга вокруг темы **«${cleanTopic}»** в формате, который вы можете продать за 7–14 дней (не «идеально», а **проверяемо**).`,
+        `- Ниша по классификатору генератора: **${niche.replace(/_/g, ' ')}** — используйте разделы **Бизнес-план**, **SWOT** и **Конкуренты** для углубления.`,
+        '',
+        '### 👥 Целевая аудитория',
+        audienceText,
+        '',
+        '### 💰 Финансы (ориентиры, уточняйте под себя)',
+        `- **Старт:** ${p.start}`,
+        `- **Единица / монетизация:** ${p.unit}`,
+        `- **Маржа:** ${p.margin}`,
+        '',
+        '### 📈 План на 14 дней (конкретные шаги)',
+        ...p.steps.map((s) => `- ${s}`),
+        '',
+        '### ✅ Проверка за 48 часов',
+        `- Спросите 5 человек из ЦА: «Заплатили бы X ₽ за [результат по **«${draftName}»**] в срок Y?» — фиксируйте ответы.`,
+        '- Запишите 3 ближайших конкурента: цена, что обещают, слабое место.',
+        '- Решите минимальную цену, ниже которой вы не работаете (себестоимость + налоги + время).',
+        '',
+        '### 📣 Каналы',
+        loc
+          ? `- **${loc}:** карты, локальные чаты, партнёры рядом, наружка/точка по бюджету.`
+          : '- Локально и онлайн: начните с одного канала на 7 дней и метрики «заявка/заказ».',
+        '- Короткое видео или карусель: боль → как **«${draftName}»** помогает → призыв.',
+        '',
+        '### ⚠️ Риски',
+        '- Спрос только «на словах» — берите предоплату или пилот с чеком.',
+        '- Слишком широкое **«${draftName}»** — сузьте сегмент или географию на первый месяц.',
+        '',
+        '### ⚙️ Дальше в D&D ai',
+        '- **Бизнес-план** и **SWOT** с тем же текстом темы дадут структуру документа под инвестора или команду.'
+      ].filter(Boolean).join('\n');
+    }
+
+    function formatMoneyPlan(n) {
+      if (n == null || n === '' || !isFinite(Number(n))) return null;
+      return `${Math.round(Number(n)).toLocaleString('ru-RU')} ₽`;
+    }
+
+    function planChannelHint(ch) {
+      if (ch === 'offline') return 'Каналы: локация, сарафан, партнёрства, офлайн-реклама в районе.';
+      if (ch === 'both') return 'Каналы: онлайн-витрина + офлайн-точка или самовывоз; единое имя и правила связи.';
+      return 'Каналы: сайт или карточки на площадках, соцсети, мессенджеры, точечный таргет.';
+    }
+
+    function inferPlanNiche(topic) {
+      const q = normalizeText(topic);
+      if (/(достав|обед|еда|кофе|пекар|кафе|фуд|кухн|ланч|бургер|суши|пекарн|кондитер)/.test(q)) return 'food_delivery';
+      if (/(курс|обуч|школ|репет|урок|ментор|тренинг|вебинар|коуч)/.test(q)) return 'education';
+      if (/(магазин|одежд|мерч|маркет|винтаж|wildberries|озон|авито|перепрод|склад|опт)/.test(q)) return 'retail';
+      if (/(прилож|saas|crm|erp|сайт|веб-серв|telegram|телеграм|бот\b|\bit\b|айти|разработ|no-code|платформ|программ)/.test(q)) return 'tech_product';
+      if (/(салон|маник|барбер|косметолог|spa\b|красот|брови|ресниц)/.test(q)) return 'beauty';
+      if (/(фитнес|тренер|йог|спортзал|персональн трен)/.test(q)) return 'fitness';
+      if (/(игр|гейм|стрим|контент|tiktok|youtube|подкаст|блог|инфобиз)/.test(q)) return 'creator';
+      if (/(услуг|ремонт|клин|студ|макияж|фотограф|юрист|бухгал|дизайн|монтаж|уборк|юрид|бухгалтер)/.test(q)) return 'services';
+      return 'generic';
+    }
+
+    function buildBusinessPlan(topic, opts = {}) {
+      const t = String(topic).trim();
+      const channel = opts.channel || 'online';
+      const audience = String(opts.audience || '').trim();
+      const budget = opts.budget != null && opts.budget !== '' ? Number(opts.budget) : null;
+
+      const budgetLine = budget != null && budget > 0
+        ? `Ориентир стартового бюджета: **${formatMoneyPlan(budget)}**. Заложите 15–25% на непредвиденное.`
+        : `Бюджет не указан — начните с минимального MVP и фиксируйте каждый расход в таблице.`;
+
+      const audienceLine = audience
+        ? `Аудитория (ваш ввод): **${audience}**.`
+        : `Проведите 10 коротких разговоров с потенциальными клиентами и выпишите 3 главные боли.`;
+
+      const niche = inferPlanNiche(t);
+      const specSets = {
+        food_delivery: [
+          'Меню на старте: 3–7 позиций, один «хит», чтобы упростить закупку.',
+          'Упаковка и сроки годности — закладывайте в себестоимость.',
+          'Доставка: свои курьеры или агрегаторы; комиссии агрегаторов учитывайте в цене.'
+        ],
+        education: [
+          'Программа на 4–8 занятий с понятным результатом в конце.',
+          'Бесплатный мини-урок или PDF как лид-магнит.',
+          'Платёж и доступ: простая схема (предоплата / рассрочка по договорённости).'
+        ],
+        retail: [
+          'Первая партия маленькая: 2–4 SKU, быстрая оборачиваемость важнее широты.',
+          'Фото и описание карточки — основа конверсии онлайн.',
+          'Учёт остатков в таблице или приложении с первой недели.'
+        ],
+        tech_product: [
+          'MVP: один ключевой сценарий пользователя, без расползания функций.',
+          'Документация, демо и поддержка — часть продукта с первого дня.',
+          'Метрики: активация, удержание D7, конверсия в оплату.'
+        ],
+        beauty: [
+          'Регламент санитарии и записи; прозрачные цены и время услуги.',
+          'Пакеты и абонементы для повторных визитов.',
+          'Отзывы с фото (с согласия) и работа с негативом публично.'
+        ],
+        fitness: [
+          'Программы с измеримым результатом и ограничениями по здоровью.',
+          'Пробный формат и понятные правила отмены.',
+          'Партнёрства с врачами, магазинами спортпита, локальными брендами.'
+        ],
+        services: [
+          'Пакеты «базовый / стандарт / премиум» вместо размытого «всё сделаем».',
+          'Онлайн-запись и напоминания снижают неявки.',
+          'После первого успешного кейса — отзыв и короткое кейс-видео.'
+        ],
+        creator: [
+          'Контент-план на 2 недели: темы, форматы, призыв к действию.',
+          'Монетизация: реклама, партнёрки, платные продукты — не всё сразу, один поток на тест.',
+          'Аналитика: удержание, источник подписок, что даёт заявки.'
+        ],
+        generic: [
+          'Одна фраза: какую боль снимаете и как измеряется результат для клиента.',
+          'Первые 10 сделок вручную — так быстрее учитесь рынку.',
+          'Раз в неделю: выручка, маржа, откуда пришли клиенты — три цифры в заметке.'
+        ]
+      };
+      const spec = specSets[niche] || specSets.generic;
+
+      const lines = [
+        `# Бизнес-план: ${t}`,
+        '',
+        `## Резюме`,
+        `- **Проект:** ${t}.`,
+        `- ${budgetLine}`,
+        `- ${audienceLine}`,
+        `- **Канал продаж:** ${planChannelHint(channel)}`,
+        '',
+        `## Продукт и ценность`,
+        ...spec.map(s => `- ${s}`),
+        '',
+        `## Рынок и конкуренты`,
+        `- Найдите 5–10 конкурентов, выпишите цену и их главный оффер.`,
+        `- Ваше УТП в 1–2 предложениях: почему клиент выберет вас уже на этом этапе.`,
+        '',
+        `## Маркетинг (первые 30 дней)`,
+        `- Неделя 1: оффер «для первых N клиентов», контент-план на 7 публикаций.`,
+        `- Неделя 2: один канал трафика с малым бюджетом + сбор заявок в мессенджер.`,
+        `- ${planChannelHint(channel)}`,
+        '',
+        `## Операции`,
+        `- Регламент: заявка → оплата → выполнение → отзыв.`,
+        `- Резерв времени ~20% на сбои в первый месяц.`,
+        '',
+        `## Финансы (подставьте свои расчёты)`,
+        `- Стартовые вложения: ______________ ₽`,
+        `- Постоянные расходы в месяц: ______________ ₽`,
+        `- Средний чек: ______________ ₽`,
+        `- Цель по выручке (мес. 1 / 2 / 3): ______________ / ______________ / ______________ ₽`,
+        '',
+        `## Риски и что делать`,
+        `- Завышенные ожидания по спросу — закрывается только тестовыми продажами.`,
+        `- Растущие расходы без контроля — еженедельный лимит на рекламу и закуп.`,
+        '',
+        `## План по неделям`,
+        `1. Неделя 1: интервью, цена, оффер, канал связи с клиентом.`,
+        `2. Неделя 2: первые оплаты, сбор отзывов, правка продукта.`,
+        `3. Неделя 3: повтор маркетинга, акция или бандл для среднего чека.`,
+        `4. Неделя 4: отчёт — выручка, маржа, стоимость лида, что отключить.`
+      ];
+      return lines.join('\n');
+    }
+
+    function offlineFinanceAnalysis({ niche, profit, paybackMonths, roi, margin }) {
+      return [
+        `### 📊 Оценка модели`,
+        `- Ниша: **${niche}**`,
+        `- Прибыль: **${profit.toLocaleString('ru-RU')} ₽/мес**`,
+        `- Окупаемость: **${paybackMonths === '∞' ? '∞' : paybackMonths + ' мес.'}**`,
+        `- ROI (год): **${roi}%**`,
+        `- Рентабельность: **${margin}%**`,
+        '',
+        `### 💡 Рекомендации`,
+        `- Средний чек и доп. продажи.`,
+        `- Срез расходов на 5–15%.`,
+        `- Повторные продажи и удержание.`,
+        '',
+        `### ⚠️ Риски`,
+        `- Сезон, касса, возвраты — веди учёт и резерв.`,
+        '',
+        `### ⚙️ Автоматизация`,
+        `- Шаблоны, таблицы, чек‑листы.`
+      ].join('\n');
+    }
+
+    function escapeHtml(s) {
+      return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    function renderInlineMarkdown(s) {
+      s = s.replace(/`([^`]+)`/g, (_, p1) => `<code class="bg-indigo-500/10 px-1.5 py-0.5 rounded text-indigo-300 text-xs">${p1}</code>`);
+      s = s.replace(/\*\*(.+?)\*\*/g, '<strong class="text-white">$1</strong>');
+      s = s.replace(/\*(.+?)\*/g, '<em>$1</em>');
+      return s;
+    }
+
+    function markdownToHtml(text) {
+      let raw = String(text ?? '');
+      raw = raw.replace(/\r\n/g, '\n').replace(/\r/g, '\n').replace(/\\n/g, '\n');
+      const src = escapeHtml(raw);
+      const blocks = [];
+      const withPlaceholders = src.replace(/```([\s\S]*?)```/g, (_, code) => {
+        const idx = blocks.push(code) - 1;
+        return `@@CODEBLOCK_${idx}@@`;
+      });
+      const lines = withPlaceholders.split(/\r?\n/);
+      let html = '';
+      let inUl = false, inOl = false, inP = false;
+      const closeP = () => { if (inP) { html += '</p>'; inP = false; } };
+      const closeLists = () => {
+        if (inUl) { html += '</ul>'; inUl = false; }
+        if (inOl) { html += '</ol>'; inOl = false; }
+      };
+      for (const rawLine of lines) {
+        const line = rawLine.trimEnd();
+        const mCode = line.match(/^@@CODEBLOCK_(\d+)@@$/);
+        if (mCode) {
+          closeP(); closeLists();
+          const code = blocks[Number(mCode[1])] ?? '';
+          html += `<pre class="bg-black/30 rounded-lg p-3 my-2 overflow-x-auto text-xs"><code>${code}</code></pre>`;
+          continue;
+        }
+        if (line.trim() === '') { closeP(); closeLists(); continue; }
+        const h3 = line.match(/^###\s+(.+)$/);
+        if (h3) { closeP(); closeLists(); html += `<h3 class="text-base font-bold text-white mt-4 mb-2">${renderInlineMarkdown(h3[1])}</h3>`; continue; }
+        const h2 = line.match(/^##\s+(.+)$/);
+        if (h2) { closeP(); closeLists(); html += `<h2 class="text-lg font-bold text-white mt-4 mb-2">${renderInlineMarkdown(h2[1])}</h2>`; continue; }
+        const h1 = line.match(/^#\s+(.+)$/);
+        if (h1) { closeP(); closeLists(); html += `<h1 class="text-xl font-bold text-white mt-4 mb-2">${renderInlineMarkdown(h1[1])}</h1>`; continue; }
+        const ul = line.match(/^- (.+)$/);
+        if (ul) {
+          closeP();
+          if (inOl) { html += '</ol>'; inOl = false; }
+          if (!inUl) { html += '<ul>'; inUl = true; }
+          html += `<li class="ml-4 text-sm text-gray-300">${renderInlineMarkdown(ul[1])}</li>`;
+          continue;
+        }
+        const ol = line.match(/^(\d+)\.\s+(.+)$/);
+        if (ol) {
+          closeP();
+          if (inUl) { html += '</ul>'; inUl = false; }
+          if (!inOl) { html += '<ol>'; inOl = true; }
+          html += `<li class="ml-4 text-sm text-gray-300">${renderInlineMarkdown(ol[2])}</li>`;
+          continue;
+        }
+        closeLists();
+        if (!inP) { html += '<p class="mb-2">'; inP = true; }
+        html += `${renderInlineMarkdown(line)}<br>`;
+      }
+      closeP(); closeLists();
+      return html;
+    }
+
+    function markdownToPlanHtml(text) {
+      return markdownToHtml(text)
+        .replaceAll('text-white', 'text-gray-900')
+        .replaceAll('text-gray-300', 'text-gray-700');
+    }
+
+    function switchSection(name) {
+      currentSection = name;
+      document.querySelectorAll('.section-content').forEach(el => {
+        el.classList.add('hidden');
+        el.classList.remove('fade-in');
+      });
+      document.querySelectorAll('.sidebar-item').forEach(el => el.classList.remove('active'));
+      const section = document.getElementById(`sec-${name}`);
+      if (section) { section.classList.remove('hidden'); section.classList.add('fade-in'); }
+      const btn = document.querySelector(`.sidebar-item[data-section="${name}"]`);
+      if (btn) btn.classList.add('active');
+      const titles = {
+        dashboard: 'Главная',
+        chat: 'Чат с экспертом',
+        ideas: 'Генератор идей',
+        competitors: 'Анализ конкурентов',
+        marketing: 'Маркетинг',
+        growth: 'Трекер роста',
+        swot: 'SWOT-анализ',
+        plan: 'Бизнес-план',
+        notes: 'Заметки',
+        finance: 'Финансы'
+      };
+      document.getElementById('sectionTitle').textContent = titles[name] || name;
+    }
+    function toggleSidebar() {
+      document.getElementById('sidebar').classList.toggle('hidden');
+    }
+    function setAppStatus(text, type = 'ready') {
+      const el = document.getElementById('appStatusText');
+      el.textContent = text;
+      const dot = el.previousElementSibling;
+      if (type === 'thinking') dot.className = 'w-2 h-2 rounded-full bg-amber-500 status-pulse inline-block';
+      else if (type === 'error') dot.className = 'w-2 h-2 rounded-full bg-red-500 inline-block';
+      else dot.className = 'w-2 h-2 rounded-full bg-emerald-500 status-pulse inline-block';
+    }
+
+    function renderChat() {
+      const container = document.getElementById('chatMessages');
+      container.innerHTML = '';
+      chatHistory.forEach((msg, i) => {
+        const div = document.createElement('div');
+        div.className = `flex items-start gap-3 ${msg.role === 'user' ? 'justify-end' : ''} slide-in`;
+        div.style.animationDelay = `${Math.min(i * 0.05, 0.3)}s`;
+        if (msg.role === 'ai') {
+          div.innerHTML = `
+            <div class="w-8 h-8 min-w-[32px] rounded-full bg-gradient-to-br from-indigo-500 to-blue-500 flex items-center justify-center text-sm text-white" aria-hidden="true">💬</div>
+            <div class="glass rounded-2xl rounded-bl-sm px-4 py-3 max-w-[75%]">
+              <div class="chat-msg text-sm text-gray-300 leading-relaxed">${markdownToHtml(msg.text)}</div>
+            </div>`;
+        } else {
+          div.innerHTML = `
+            <div class="glass rounded-2xl rounded-br-sm px-4 py-3 max-w-[75%] bg-indigo-500/10 border-indigo-500/20">
+              <div class="text-sm text-white">${markdownToHtml(msg.text)}</div>
+            </div>
+            <div class="w-8 h-8 min-w-[32px] rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-xs text-white font-bold">Вы</div>`;
+        }
+        container.appendChild(div);
+      });
+      container.scrollTop = container.scrollHeight;
+    }
+
+    async function sendChatMessage() {
+      const input = document.getElementById('chatInput');
+      const text = input.value.trim();
+      if (!text) return;
+      input.value = '';
+      chatHistory.push({ role: 'user', text });
+      renderChat();
+      document.getElementById('chatTyping').classList.remove('hidden');
+      setAppStatus('Готовлю ответ…', 'thinking');
+      try {
+        await new Promise(r => setTimeout(r, 280));
+        chatHistory.push({ role: 'ai', text: offlineChatAnswer(text) });
+        saveToStorage();
+      } catch (e) {
+        console.warn(e);
+        setAppStatus('Ошибка', 'error');
+      } finally {
+        document.getElementById('chatTyping').classList.add('hidden');
+        setAppStatus('Готово к работе', 'ready');
+        renderChat();
+      }
+    }
+
+    function sendQuickQuestion(text) {
+      document.getElementById('chatInput').value = text;
+      sendChatMessage();
+    }
+
+    function renderIdeas() {
+      const container = document.getElementById('ideasResult');
+      container.innerHTML = '';
+      ideasHistory.forEach((idea) => {
+        const div = document.createElement('div');
+        div.className = 'glass neon-border rounded-2xl p-6 fade-in';
+        div.innerHTML = `
+          <div class="flex items-center justify-between mb-3">
+            <div class="flex items-center gap-2">
+              <span class="text-lg">💡</span>
+              <span class="text-xs text-gray-500">${escapeHtml(idea.topic)}</span>
+            </div>
+            <span class="text-[10px] text-gray-600">${escapeHtml(idea.date)}</span>
+          </div>
+          <div class="chat-msg text-sm text-gray-300 leading-relaxed">${markdownToHtml(idea.text)}</div>`;
+        container.appendChild(div);
+      });
+    }
+
+    async function generateIdea() {
+      const input = document.getElementById('ideasInput');
+      const topic = input.value.trim();
+      if (!topic) return;
+      input.value = '';
+      const cityEl = document.getElementById('ideasCity');
+      const city = cityEl ? cityEl.value.trim() : '';
+      const btn = document.getElementById('ideasBtn');
+      btn.disabled = true;
+      btn.textContent = '⏳ …';
+      document.getElementById('ideasLoading').classList.remove('hidden');
+      document.getElementById('ideasResult').innerHTML = '';
+      setAppStatus('Генерация…', 'thinking');
+      try {
+        await new Promise(r => setTimeout(r, 400));
+        const label = city ? `${topic} (${city})` : topic;
+        ideasHistory.unshift({ topic: label, text: buildDetailedIdea(topic, city), date: new Date().toLocaleString('ru-RU') });
+        if (ideasHistory.length > 20) ideasHistory = ideasHistory.slice(0, 20);
+        saveToStorage();
+        renderIdeas();
+      } finally {
+        document.getElementById('ideasLoading').classList.add('hidden');
+        btn.disabled = false;
+        btn.textContent = '⚡ Сгенерировать';
+        setAppStatus('Готово к работе', 'ready');
+      }
+    }
+
+    function renderPlans() {
+      const container = document.getElementById('planResult');
+      container.innerHTML = '';
+      if (planHistory.length === 0) {
+        container.innerHTML = `
+          <div class="glass rounded-2xl p-8 text-center">
+            <div class="text-4xl mb-3">📋</div>
+            <div class="text-gray-500 text-sm">Заполните форму выше и нажмите «Собрать план».<br>Можно открыть просмотр, скопировать текст или скачать файл.</div>
+          </div>`;
+        return;
+      }
+      planHistory.forEach((plan) => {
+        const div = document.createElement('div');
+        div.id = `plan-card-${plan.id}`;
+        div.className = 'glass neon-border rounded-2xl p-5 mb-4 fade-in hover:border-indigo-500/30 transition';
+        const preview = String(plan.text || '').replace(/[#*`]/g, '').replace(/\s+/g, ' ').slice(0, 140);
+        div.innerHTML = `
+          <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-2">
+            <div class="flex items-center gap-2 min-w-0">
+              <span class="text-lg shrink-0">📄</span>
+              <span class="text-sm font-semibold text-white truncate">${escapeHtml(plan.topic)}</span>
+            </div>
+            <div class="flex flex-wrap items-center gap-2 shrink-0">
+              <span class="text-[10px] text-gray-600">${escapeHtml(plan.date)}</span>
+              <button type="button" class="text-xs px-2.5 py-1 rounded-lg glass-light text-indigo-300 hover:bg-indigo-500/15">Просмотр</button>
+              <button type="button" class="text-xs px-2.5 py-1 rounded-lg glass-light text-gray-400 hover:text-white">Копировать</button>
+              <button type="button" class="text-xs px-2.5 py-1 rounded-lg glass-light text-gray-400 hover:text-emerald-300">.md</button>
+              <button type="button" class="text-xs px-2.5 py-1 rounded-lg glass-light text-gray-400 hover:text-red-400">Удалить</button>
+            </div>
+          </div>
+          <div class="text-xs text-gray-500">${escapeHtml(preview)}…</div>`;
+        const btns = div.querySelectorAll('button');
+        btns[0].onclick = (e) => { e.stopPropagation(); openPlanModal(plan.id); };
+        btns[1].onclick = (e) => { e.stopPropagation(); copyPlanText(plan.id); };
+        btns[2].onclick = (e) => { e.stopPropagation(); downloadPlanById(plan.id); };
+        btns[3].onclick = (e) => { e.stopPropagation(); deletePlanById(plan.id); };
+        container.appendChild(div);
+      });
+    }
+
+    function getPlanById(id) {
+      return planHistory.find(p => p.id === id);
+    }
+
+    function deletePlanById(id) {
+      if (!confirm('Удалить этот план из списка?')) return;
+      planHistory = planHistory.filter(p => p.id !== id);
+      saveToStorage();
+      renderPlans();
+      if (currentPlanModalId === id) closePlanModal();
+    }
+
+    async function copyPlanText(id) {
+      const plan = getPlanById(id);
+      if (!plan || !plan.text) return;
+      try {
+        await navigator.clipboard.writeText(plan.text);
+        setAppStatus('Текст скопирован', 'ready');
+      } catch {
+        setAppStatus('Копирование не удалось', 'error');
+      }
+    }
+
+    function downloadPlanById(id) {
+      const plan = getPlanById(id);
+      if (!plan || !plan.text) return;
+      const safe = String(plan.topic || 'plan').replace(/[^\w\u0400-\u04FF\-]+/g, '_').slice(0, 60);
+      const blob = new Blob([plan.text], { type: 'text/markdown;charset=utf-8' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `${safe || 'biznes-plan'}.md`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+      setAppStatus('Файл скачан', 'ready');
+    }
+
+    async function generatePlan() {
+      const topic = document.getElementById('planInput').value.trim();
+      if (!topic) return;
+      const budgetRaw = document.getElementById('planBudget').value.trim();
+      const budget = budgetRaw === '' ? null : parseFloat(budgetRaw);
+      const channel = document.getElementById('planChannel').value;
+      const audience = document.getElementById('planAudience').value.trim();
+      const btn = document.getElementById('planBtn');
+      btn.disabled = true;
+      btn.textContent = '⏳ Собираем…';
+      document.getElementById('planLoading').classList.remove('hidden');
+      document.getElementById('planResult').innerHTML = '';
+      setAppStatus('Сборка плана…', 'thinking');
+      let newPlan = null;
+      try {
+        await new Promise(r => setTimeout(r, 400));
+        newPlan = {
+          id: `p_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+          topic,
+          text: buildBusinessPlan(topic, { budget, channel, audience }),
+          date: new Date().toLocaleString('ru-RU'),
+          budget, channel, audience
+        };
+        planHistory.unshift(newPlan);
+        if (planHistory.length > 15) planHistory = planHistory.slice(0, 15);
+        saveToStorage();
+        renderPlans();
+        if (newPlan) {
+          const card = document.getElementById(`plan-card-${newPlan.id}`);
+          if (card) {
+            card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            card.classList.add('plan-card-highlight');
+            setTimeout(() => card.classList.remove('plan-card-highlight'), 2200);
+          }
+        }
+      } finally {
+        document.getElementById('planLoading').classList.add('hidden');
+        btn.disabled = false;
+        btn.textContent = '📄 Собрать план';
+        setAppStatus('Готово к работе', 'ready');
+      }
+    }
+
+    function openPlanModal(planId) {
+      const plan = getPlanById(planId);
+      if (!plan) return;
+      currentPlanModalId = planId;
+      document.getElementById('planModalContent').innerHTML = `
+        <div class="text-center mb-6">
+          <div class="flex items-center justify-center gap-2 mb-3">
+            <span class="text-base" aria-hidden="true">📋</span>
+            <span class="text-xs text-gray-400">Документ D&D — ${escapeHtml(plan.topic)}</span>
+          </div>
+          <div class="text-[10px] text-gray-400 mb-6">${escapeHtml(plan.date)}</div>
+          <hr class="border-gray-200">
+        </div>
+        <div class="prose max-w-none text-sm leading-relaxed text-gray-700">${markdownToPlanHtml(plan.text)}</div>`;
+      document.getElementById('planModal').classList.remove('hidden');
+    }
+
+    async function copyPlanFromModal() {
+      if (currentPlanModalId) await copyPlanText(currentPlanModalId);
+    }
+    function downloadPlanFromModal() {
+      if (currentPlanModalId) downloadPlanById(currentPlanModalId);
+    }
+
+    function closePlanModal() {
+      currentPlanModalId = null;
+      document.getElementById('planModal').classList.add('hidden');
+    }
+    function printPlan() { window.print(); }
+
+    function renderFinance() {
+      const container = document.getElementById('finResult');
+      if (financeHistory.length === 0) {
+        container.innerHTML = `
+          <div class="text-center text-gray-600 text-sm py-8">
+            <div class="text-4xl mb-3">📊</div>
+            Введите данные и нажмите «Анализировать»<br>для прогноза и советов
+          </div>`;
+        return;
+      }
+      const latest = financeHistory[0];
+      container.innerHTML = `
+        <div class="chat-msg text-sm text-gray-300 leading-relaxed">${markdownToHtml(latest.text)}</div>
+        <div class="text-[10px] text-gray-600 mt-3">${escapeHtml(latest.date)}</div>`;
+    }
+
+    async function analyzeFinances() {
+      const investment = parseFloat(document.getElementById('finInvestment').value) || 0;
+      const revenue = parseFloat(document.getElementById('finRevenue').value) || 0;
+      const expenses = parseFloat(document.getElementById('finExpenses').value) || 0;
+      const niche = document.getElementById('finNiche').value.trim() || 'общий бизнес';
+      if (investment <= 0 || revenue <= 0) return;
+      const btn = document.getElementById('finBtn');
+      btn.disabled = true;
+      btn.textContent = '⏳ …';
+      const profit = revenue - expenses;
+      const paybackMonths = profit > 0 ? Math.ceil(investment / profit) : '∞';
+      const roi = profit > 0 ? ((profit * 12) / investment * 100).toFixed(0) : '0';
+      const margin = revenue > 0 ? ((profit / revenue) * 100).toFixed(0) : '0';
+      document.getElementById('finStatProfit').textContent = `${profit.toLocaleString('ru-RU')} ₽`;
+      document.getElementById('finStatPayback').textContent = paybackMonths === '∞' ? '∞' : `${paybackMonths} мес.`;
+      document.getElementById('finStatROI').textContent = `${roi}%`;
+      document.getElementById('finStatMargin').textContent = `${margin}%`;
+      document.getElementById('finLoading').classList.remove('hidden');
+      document.getElementById('finResult').innerHTML = '';
+      setAppStatus('Считаем…', 'thinking');
+      try {
+        await new Promise(r => setTimeout(r, 400));
+        financeHistory.unshift({
+          investment, revenue, expenses, niche,
+          profit, paybackMonths, roi, margin,
+          text: offlineFinanceAnalysis({ niche, profit, paybackMonths, roi, margin }),
+          date: new Date().toLocaleString('ru-RU')
+        });
+        if (financeHistory.length > 10) financeHistory = financeHistory.slice(0, 10);
+        saveToStorage();
+        renderFinance();
+      } finally {
+        document.getElementById('finLoading').classList.add('hidden');
+        btn.disabled = false;
+        btn.textContent = '🔍 Анализировать';
+        setAppStatus('Готово к работе', 'ready');
+      }
+    }
+
+    function clearCurrentSectionData() {
+      if (!confirm('Очистить данные текущего раздела?')) return;
+      switch (currentSection) {
+        case 'chat': chatHistory = chatHistory.length ? [chatHistory[0]] : []; break;
+        case 'ideas': ideasHistory = []; break;
+        case 'plan': planHistory = []; break;
+        case 'notes':
+          localStorage.removeItem('dnd_notes');
+          const na = document.getElementById('notesArea');
+          if (na) na.value = '';
+          break;
+        case 'finance': financeHistory = []; break;
+        case 'growth':
+          growthHistory = [];
+          renderGrowthTable();
+          break;
+        case 'dashboard':
+          localStorage.removeItem('dnd_dashboard_metrics');
+          initDashboard();
+          break;
+        case 'competitors':
+          document.getElementById('compNiche').value = '';
+          document.getElementById('compList').value = '';
+          document.getElementById('compResult').innerHTML = '<p class="text-sm text-gray-500 text-center py-6">Заполните форму и нажмите «Собрать анализ».</p>';
+          break;
+        case 'marketing':
+          document.getElementById('mktProduct').value = '';
+          document.getElementById('mktAudience').value = '';
+          document.getElementById('mktResult').innerHTML = '<p class="text-sm text-gray-500 text-center py-6">Введите продукт и нажмите «Сгенерировать пакет».</p>';
+          break;
+        case 'swot':
+          document.getElementById('swotName').value = '';
+          document.getElementById('swotContext').value = '';
+          document.getElementById('swotResult').innerHTML = '<p class="text-sm text-gray-500 text-center py-6">Заполните поля и нажмите «Построить SWOT».</p>';
+          break;
+        default: return;
+      }
+      saveToStorage();
+      renderChat();
+      renderIdeas();
+      renderPlans();
+      renderFinance();
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closePlanModal();
+    });
+  </script>
+</body>
+</html>
