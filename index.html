@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#07070d" />
   <title>D&D ai</title>
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%236366f1'/%3E%3Ctext x='32' y='42' text-anchor='middle' fill='white' font-family='system-ui,sans-serif' font-size='22' font-weight='700'%3EDD%3C/text%3E%3C/svg%3E" />
   <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
@@ -70,6 +71,30 @@
     .plan-card-highlight { box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.55); transition: box-shadow 0.4s ease; }
     .growth-bar { height: 8px; border-radius: 4px; background: linear-gradient(90deg, #6366f1, #3b82f6); transition: width 0.4s ease; }
     @media print { body { background: white !important; } .no-print { display: none !important; } }
+
+    /* Стикеры и богатые результаты (маркетинг, конкуренты, SWOT) */
+    .sticker {
+      display: inline-flex; align-items: center; gap: 0.25rem;
+      padding: 0.35rem 0.75rem; border-radius: 9999px; font-size: 11px; font-weight: 600;
+      letter-spacing: 0.03em; border: 1px solid transparent;
+    }
+    .sticker-indigo { background: rgba(99, 102, 241, 0.18); color: #a5b4fc; border-color: rgba(99, 102, 241, 0.35); }
+    .sticker-emerald { background: rgba(16, 185, 129, 0.15); color: #6ee7b7; border-color: rgba(16, 185, 129, 0.35); }
+    .sticker-amber { background: rgba(245, 158, 11, 0.15); color: #fcd34d; border-color: rgba(245, 158, 11, 0.35); }
+    .sticker-rose { background: rgba(244, 63, 94, 0.12); color: #fda4af; border-color: rgba(244, 63, 94, 0.28); }
+    .sticker-sky { background: rgba(56, 189, 248, 0.12); color: #7dd3fc; border-color: rgba(56, 189, 248, 0.3); }
+    .result-rich { font-size: 14px; line-height: 1.65; }
+    .result-rich .rich-h3 { font-size: 1rem; font-weight: 700; color: rgb(243, 244, 246); margin: 1rem 0 0.5rem; }
+    html[data-theme="light"] .result-rich .rich-h3 { color: rgb(17, 24, 39); }
+    .compare-table-wrap { overflow-x: auto; border-radius: 12px; border: 1px solid rgba(99, 102, 241, 0.15); margin: 0.75rem 0; }
+    .compare-table { width: 100%; border-collapse: collapse; font-size: 12px; min-width: 480px; }
+    .compare-table th { text-align: left; padding: 10px 8px; background: rgba(99, 102, 241, 0.08); color: rgb(199, 210, 254); font-weight: 600; }
+    html[data-theme="light"] .compare-table th { color: rgb(67, 56, 202); }
+    .compare-table td { padding: 8px; border-top: 1px solid rgba(99, 102, 241, 0.1); vertical-align: top; }
+    .score-pill { display: inline-block; min-width: 2.25rem; text-align: center; font-weight: 700; padding: 2px 6px; border-radius: 6px; background: rgba(99, 102, 241, 0.12); color: #a5b4fc; font-size: 11px; }
+    .rich-card { border-radius: 12px; padding: 12px 14px; margin: 8px 0; border: 1px solid rgba(99, 102, 241, 0.12); background: rgba(0, 0, 0, 0.15); }
+    html[data-theme="light"] .rich-card { background: rgba(99, 102, 241, 0.06); }
+
   </style>
 </head>
 <body class="h-full text-gray-200 overflow-hidden">
@@ -669,14 +694,23 @@
       el.innerHTML = `Маржа с единицы: <strong class="text-emerald-400">${margin.toLocaleString('ru-RU')} ₽</strong>. Безубыточность при текущих постоянных: <strong class="text-indigo-300">${units.toLocaleString('ru-RU')}</strong> шт. в месяц.`;
     }
 
+    function applyTheme(theme) {
+      const next = theme === 'light' ? 'light' : 'dark';
+      document.documentElement.dataset.theme = next;
+      if (document.body) document.body.dataset.theme = next;
+      const meta = document.querySelector('meta[name="theme-color"]');
+      if (meta) meta.setAttribute('content', next === 'light' ? '#f6f7ff' : '#07070d');
+    }
     function initTheme() {
       const saved = localStorage.getItem('dnd_theme') || localStorage.getItem('ai_theme');
-      document.documentElement.dataset.theme = saved === 'light' ? 'light' : 'dark';
+      applyTheme(saved === 'light' ? 'light' : 'dark');
     }
     function toggleTheme() {
-      const next = document.documentElement.dataset.theme === 'light' ? 'dark' : 'light';
-      document.documentElement.dataset.theme = next;
+      const current = document.documentElement.dataset.theme || localStorage.getItem('dnd_theme') || 'dark';
+      const next = current === 'light' ? 'dark' : 'light';
+      applyTheme(next);
       localStorage.setItem('dnd_theme', next);
+      setAppStatus(next === 'light' ? 'Светлая тема' : 'Темная тема', 'ready');
     }
 
     function saveToStorage() {
@@ -830,109 +864,279 @@
       renderGrowthTable();
     }
 
-    function buildCompetitorMarkdown(niche, competitorLines) {
-      const names = competitorLines.map((s) => s.trim()).filter(Boolean).slice(0, 8);
-      const list = names.length ? names.map((n, i) => `${i + 1}. **${n}** — ценовой уровень и оффер снять с сайта/соцсетей; зафиксировать сильные стороны.`).join('\n') : '- Добавьте 3–5 конкурентов в список — сравнение станет конкретнее.';
-      return [
-        `### Анализ конкурентов: ${niche}`,
-        '',
-        '#### Что сравнить по каждому',
-        '- Цена / пакеты / скидки',
-        '- УТП и обещание результата',
-        '- Каналы: где берут трафик',
-        '- Соцдоказательства: отзывы, кейсы',
-        '',
-        '#### Ваши конкуренты',
-        list,
-        '',
-        '#### Как отстроиться',
-        `- Узкая ниша внутри **${niche}** (скорость, гарантия, формат, география).`,
-        '- Прозрачный процесс и понятный срок — если у конкурентов размыто.',
-        '- Пилот / пробный период с чёткими условиями.',
-        '',
-        '#### Риски',
-        '- Гонка цен — выход через сервис и бандлы.',
-        '- Копирование оффера — регулярно обновляйте кейсы и процесс.'
-      ].join('\n');
+    function strHash(s) {
+      let h = 2166136261;
+      const str = String(s);
+      for (let i = 0; i < str.length; i++) h = Math.imul(h ^ str.charCodeAt(i), 16777619);
+      return h >>> 0;
     }
 
-    function buildMarketingMarkdown(product, audience, toneKey) {
+    function scoreFromSeed(seed, dim) {
+      return 2 + (strHash(String(seed) + '|' + dim) % 4);
+    }
+
+    function shortCompLabel(name, max) {
+      const t = String(name).trim();
+      if (!t) return '—';
+      return t.length <= max ? t : t.slice(0, max - 1) + '…';
+    }
+
+    function extractNicheSignals(text) {
+      const src = normalizeText(text);
+      const words = src.split(/[^a-zа-я0-9]+/i).filter((w) => w.length > 2);
+      const uniq = [];
+      words.forEach((w) => { if (!uniq.includes(w)) uniq.push(w); });
+      const k1 = uniq[0] || 'продукт';
+      const k2 = uniq[1] || 'клиент';
+      const k3 = uniq[2] || 'продажи';
+      return { k1, k2, k3, src };
+    }
+
+    function buildCompetitorHtml(niche, competitorLines) {
+      const names = competitorLines.map((s) => s.trim()).filter(Boolean).slice(0, 6);
+      const dims = [
+        { key: 'product', label: 'Продукт', icon: '🧩' },
+        { key: 'price', label: 'Цена', icon: '💰' },
+        { key: 'marketing', label: 'Маркетинг', icon: '📣' },
+        { key: 'service', label: 'Сервис', icon: '🤝' }
+      ];
+      const seed = normalizeText(niche);
+      const you = { product: 3, price: 4, marketing: 3, service: 4 };
+      const competitors = names.map((name) => {
+        const base = `${seed}|${normalizeText(name)}`;
+        const scores = {};
+        dims.forEach((d) => { scores[d.key] = scoreFromSeed(base, d.key); });
+        return { raw: name, label: shortCompLabel(name, 22), scores };
+      });
+
+      if (!competitors.length) {
+        return `
+<div class="result-rich space-y-3">
+  <div class="flex flex-wrap gap-2"><span class="sticker sticker-indigo">🏢 Ниша</span><span class="text-white font-medium">${escapeHtml(niche)}</span></div>
+  <p class="text-sm text-amber-300/90">Добавьте минимум 2 конкурента по строкам — тогда я сравню их по <strong>Продукт / Цена / Маркетинг / Сервис</strong> и дам точечную отстройку.</p>
+  <div class="rich-card text-sm text-gray-400">
+    <span class="sticker sticker-amber mb-2">📋 Что собрать за 15 минут</span>
+    <ul class="list-disc ml-5 mt-2">
+      <li>Цена базового предложения и средний чек</li>
+      <li>Оффер в шапке профиля/сайта</li>
+      <li>Как быстро отвечают в чате</li>
+      <li>2–3 последних рекламных креатива</li>
+    </ul>
+  </div>
+</div>`;
+      }
+
+      let thead = `<tr><th class="rounded-tl-lg">Критерий</th><th>🚀 Мы</th>`;
+      competitors.forEach((c) => { thead += `<th title="${escapeHtml(c.raw)}">${escapeHtml(c.label)}</th>`; });
+      thead += '</tr>';
+      let tbody = '';
+      dims.forEach((d) => {
+        tbody += `<tr><td class="font-medium text-gray-300">${d.icon} ${d.label}</td>`;
+        tbody += `<td class="text-center"><span class="score-pill">${you[d.key]}</span></td>`;
+        competitors.forEach((c) => {
+          const v = c.scores[d.key];
+          const arrow = v > you[d.key] ? ' <span class="text-amber-400 text-[10px]">▲</span>' : v < you[d.key] ? ' <span class="text-emerald-400 text-[10px]">▼</span>' : '';
+          tbody += `<td class="text-center"><span class="score-pill">${v}</span>${arrow}</td>`;
+        });
+        tbody += '</tr>';
+      });
+
+      const aliveCompare = competitors.map((c) => {
+        const s = c.scores;
+        const best = dims.filter((d) => s[d.key] >= 4).map((d) => d.label.toLowerCase());
+        const weak = dims.filter((d) => s[d.key] <= 2).map((d) => d.label.toLowerCase());
+        return `- **${escapeHtml(c.label)}**\n  - **Их сила:** ${best.join(', ') || 'бренд и привычка клиентов'}.\n  - **Их слабость:** ${weak.join(', ') || 'скорость ответа и персонализация'}.\n  - **Наш ход:** делаем оффер с конкретным сроком и быстрым ответом в мессенджере.`;
+      }).join('\n');
+
+      return `
+<div class="result-rich space-y-4">
+  <div class="flex flex-wrap gap-2 items-center">
+    <span class="sticker sticker-indigo">🏢 Ниша</span>
+    <span class="text-white font-semibold">${escapeHtml(niche)}</span>
+    <span class="sticker sticker-sky">⚔️ Живое сравнение</span>
+  </div>
+  <div class="compare-table-wrap">
+    <table class="compare-table" role="grid">
+      <thead>${thead}</thead>
+      <tbody>${tbody}</tbody>
+    </table>
+  </div>
+  <div class="rich-card text-sm text-gray-300">
+    <span class="sticker sticker-emerald mb-2">🧠 Как это выглядит в реальности</span>
+    <div class="chat-msg">${markdownToHtml(aliveCompare)}</div>
+  </div>
+  <div class="rich-card text-sm text-gray-400">
+    <span class="sticker sticker-rose mb-2">🎯 Action Item</span>
+    Зафиксируйте 1 оффер: <strong>“быстрый ответ + прозрачный срок + бонус за первый заказ”</strong> и прогоните 20 лидов через единый скрипт.
+  </div>
+</div>`;
+    }
+
+    function buildMarketingHtml(product, audience, toneKey) {
       const tones = {
-        pro: 'деловой, без воды, акцент на цифры и процесс',
-        friendly: 'простой язык, тёплый тон, «ты»/«вы» по контексту ЦА',
-        bold: 'смелые формулировки, вызов статус-кво, чёткий призыв'
+        pro: { label: 'Деловой', hook: 'Сфокусируйтесь на метрике и процессе — меньше эмоций, больше проверяемых обещаний.', cta: 'Получить разбор / записаться на встречу' },
+        friendly: { label: 'Тёплый', hook: 'Говорите просто, как с коллегой: одна боль — одно решение — один шаг.', cta: 'Написать нам / забрать гайд' },
+        bold: { label: 'Смелый', hook: 'Бейте в диссонанс: «делаете X, а теряете Y» — потом спокойное доказательство.', cta: 'Хочу так же / исправить это' }
       };
-      const tone = tones[toneKey] || tones.pro;
-      const aud = audience || 'уточните сегмент (возраст, боль, канал)';
-      return [
-        `### Маркетинг-пакет: ${product}`,
-        '',
-        `**Аудитория:** ${aud}`,
-        `**Тон:** ${tone}`,
-        '',
-        '#### Оффер (черновик)',
-        `- «${product}» — для тех, кому нужно **[результат за срок]** без **[главный страх ЦА]**.`,
-        '',
-        '#### УТП (3 варианта)',
-        '1. Быстрее / проще / прозрачнее процесс, чем у типичного решения.',
-        '2. Конкретная гарантия или пилот с понятными условиями.',
-        '3. Специализация под ваш сегмент, а не «для всех».',
-        '',
-        '#### Воронка (7 дней)',
-        '- День 1–2: лид-магнит (чек-лист, мини-гайд, короткое видео).',
-        '- День 3–4: серия полезных постов + один прямой оффер.',
-        '- День 5–7: ретаргет и дожим в мессенджер / заявка.',
-        '',
-        '#### Креативы',
-        '- Короткое видео: боль → решение → призыв.',
-        '- Карусель: «3 ошибки» / «5 шагов» по теме продукта.',
-        '- Кейс: до/после с цифрой или сроком.',
-        '',
-        '#### Метрики',
-        '- CPL, конверсия в оплату, CAC payback — хотя бы в таблице раз в неделю.'
-      ].join('\n');
+      const T = tones[toneKey] || tones.pro;
+      const aud = audience.trim() || 'люди, у которых болит эта задача прямо сейчас';
+      const pShort = shortCompLabel(product, 48);
+      const sig = extractNicheSignals(`${product} ${aud}`);
+      const w1 = sig.k1;
+      const w2 = sig.k2;
+
+      const headlines = [
+        `${pShort}: ${w1} без лишних шагов`,
+        aud.length < 40 ? `Для тех, кто ${aud.split(',')[0] || 'в теме'} — ${pShort}` : `Если устали от хаоса — ${pShort}`,
+        `За 14 дней: структура под ${w2} (пилот)`
+      ];
+
+      const quarterPlan = [
+        ['Месяц 1 (Старт)', `Собираем первые 30-50 лидов в теме «${w1}» через тест 2 креативов и один оффер.`, `ТГ-паблики по нише, локальные чаты, таргет на сегмент «${aud.split(',')[0] || 'горячая аудитория'}».`],
+        ['Месяц 2 (Рост)', `Усиливаем канал с лучшим CPL, добавляем ретаргет и дожим в мессенджере.`, 'Ремаркетинг, кейс-посты, 3 интеграции у микро-блогеров в нише.'],
+        ['Месяц 3 (Масштаб)', `Упаковываем связку в систему: контент + реклама + скрипт продаж под ${w2}.`, 'Автоворонка в боте, партнерские размещения, повторные продажи по базе.']
+      ];
+
+      const dm1 = T.label === 'Деловой'
+        ? `Здравствуйте! По вашей нише интересен продукт «${pShort}». Могу за 15 минут показать, как закрываем [боль] без [риск]. Удобно завтра 12:00 или 16:00?`
+        : `Привет! Мы как раз помогаем с «${pShort}». Если актуально — кину короткий чек-лист без воды. Напишите «+» — пришлю в личку ✨`;
+
+      const dm2 = `Напоминание: оставили заявку на «${pShort}». Готовы показать мини-демо за 10 минут — ответьте цифрой удобного часа.`;
+
+      const speakerPhrases = [
+        'Мы не распыляемся: сначала один канал, одна метрика и быстрый цикл проверки.',
+        'Наше преимущество — конкретный результат для клиента в понятный срок.',
+        'Мы масштабируем только то, что уже дает прибыль на тесте.'
+      ];
+      return `
+<div class="result-rich space-y-3">
+  <div class="flex flex-wrap gap-2 items-center">
+    <span class="sticker sticker-indigo">📣 Продукт</span>
+    <span class="text-white font-semibold">${escapeHtml(product)}</span>
+  </div>
+  <div class="flex flex-wrap gap-2">
+    <span class="sticker sticker-sky">🎯 Аудитория</span>
+    <span class="text-gray-300 text-sm">${escapeHtml(aud)}</span>
+  </div>
+  <div class="flex flex-wrap gap-2">
+    <span class="sticker sticker-emerald">🗣 Тон: ${T.label}</span>
+    <span class="text-gray-400 text-sm">${escapeHtml(T.hook)}</span>
+  </div>
+
+  <div class="rich-card">
+    <span class="sticker sticker-amber mb-2">💎 УТП (3 угла)</span>
+    <ol class="list-decimal ml-5 text-gray-300 text-sm space-y-1">
+      <li><strong>Специализация:</strong> только ${escapeHtml(w1)} — без лишнего в продукте.</li>
+      <li><strong>Прозрачность:</strong> срок, этапы, что входит в «${escapeHtml(pShort)}».</li>
+      <li><strong>Снижение риска:</strong> пилот / оплата по этапам / понятный SLA.</li>
+    </ol>
+  </div>
+
+  <div class="rich-card text-sm">
+    <span class="sticker sticker-rose mb-2">🧲 Оффер в одном абзаце</span>
+    <p class="text-gray-300">«${escapeHtml(pShort)}» — для ${escapeHtml(aud.split(',')[0] || 'занятых людей в нише')}: получаете <strong>измеримый шаг</strong> за 7–14 дней, без типовых «раскачек» и скрытых платежей. <strong>Призыв:</strong> ${escapeHtml(T.cta)}.</p>
+  </div>
+
+  <div class="rich-card">
+    <span class="sticker sticker-indigo mb-2">📢 Заголовки (3 варианта)</span>
+    <ul class="space-y-2 text-sm text-gray-300">
+      ${headlines.map((h) => `<li class="border-l-2 border-indigo-500/40 pl-3">${escapeHtml(h)}</li>`).join('')}
+    </ul>
+  </div>
+
+  <div class="compare-table-wrap">
+    <table class="compare-table text-xs">
+      <thead><tr><th>Этап</th><th>Задача</th><th>Инструменты захвата</th></tr></thead>
+      <tbody>
+        ${quarterPlan.map((row) => `<tr><td class="font-semibold text-indigo-300">${row[0]}</td><td>${escapeHtml(row[1])}</td><td class="text-gray-500">${escapeHtml(row[2])}</td></tr>`).join('')}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="rich-card text-sm">
+    <span class="sticker sticker-sky mb-2">💬 Шаблоны в мессенджер</span>
+    <p class="text-gray-400 mb-2"><strong class="text-gray-300">Первый контакт:</strong></p>
+    <p class="text-gray-300 bg-black/20 rounded-lg p-3 mb-3">${escapeHtml(dm1)}</p>
+    <p class="text-gray-400 mb-2"><strong class="text-gray-300">Дожим:</strong></p>
+    <p class="text-gray-300 bg-black/20 rounded-lg p-3">${escapeHtml(dm2)}</p>
+  </div>
+
+  <div class="rich-card text-sm text-gray-400">
+    <span class="sticker sticker-emerald mb-2">📈 Бюджет теста (ориентир)</span>
+    <ul class="list-disc ml-5 space-y-1">
+      <li>40% — креативы и посадочная</li>
+      <li>35% — таргет / контекст на 7 дней</li>
+      <li>25% — доработка оффера по метрикам</li>
+    </ul>
+    <p class="mt-2 text-xs text-gray-500">Метрики: CPL, CR в заявку, CR в оплату, стоимость квалифицированного лида.</p>
+  </div>
+  <div class="rich-card text-sm text-gray-300">
+    <span class="sticker sticker-indigo mb-2">[ДЛЯ СПИКЕРА]</span>
+    <ul class="list-disc ml-5 space-y-1">
+      ${speakerPhrases.map((x) => `<li>${escapeHtml(x)}</li>`).join('')}
+    </ul>
+  </div>
+</div>`;
     }
 
     function buildSwotMarkdown(name, context) {
       const niche = inferPlanNiche(name + ' ' + context);
-      const nicheHint = {
-        food_delivery: 'логистика и маржа',
-        education: 'репутация и программа',
-        retail: 'остатки и карточка',
-        tech_product: 'онбординг и удержание в продукте',
-        beauty: 'повторные визиты и стандарты сервиса',
-        fitness: 'безопасность и удержание абонементов',
-        services: 'загрузка и стандарты',
-        creator: 'охваты и монетизация',
-        generic: 'спрос и дифференциация'
-      }[niche] || 'спрос и дифференциация';
+      const nonObvious = {
+        food_delivery: {
+          s: 'доступ к локальным поставщикам с коротким плечом доставки',
+          w: 'зависимость от одного холодильного узла',
+          o: 'корпоративные обеды для соседних офисов',
+          t: 'отключили свет - пропал товар и сорвали поставку'
+        },
+        retail: {
+          s: 'быстрая дозаказка по данным продаж, а не интуиции',
+          w: 'кассовый разрыв из-за зависших остатков',
+          o: 'собственные наборы/бандлы под локальный спрос',
+          t: 'выход крупного сетевика в ваш район'
+        },
+        services: {
+          s: 'личный контакт с клиентом и кастом без долгих согласований',
+          w: 'владелец - узкое горлышко всех решений',
+          o: 'пакетные услуги с подпиской',
+          t: 'резкий рост цены лидов в основном канале'
+        },
+        tech_product: {
+          s: 'собственный код и скорость доработок без подрядчиков',
+          w: 'один технический специалист на критический функционал',
+          o: 'white-label версия для смежных рынков',
+          t: 'блокировка API или изменение правил платформы'
+        },
+        generic: {
+          s: 'доступ к дешевому сырью или каналу привлечения',
+          w: 'нет повторяемого процесса продаж',
+          o: 'партнерские продажи через смежные бизнесы',
+          t: 'демпинг от крупного игрока с запасом денег'
+        }
+      };
+      const pick = nonObvious[niche] || nonObvious.generic;
       return [
-        `### SWOT: ${name}`,
+        `## SWOT: ${name}`,
         '',
         context ? `**Контекст:** ${context}` : '',
         '',
-        '#### Strengths (сильные стороны)',
-        `- Экспертиза и скорость запуска в нише.`,
-        `- Гибкость малой команды / личный бренд.`,
-        `- Понятный продукт и цена для первых клиентов.`,
+        '### Strengths',
+        `- ${pick.s}.`,
+        '- Быстрая обратная связь от клиента, можно дорабатывать продукт за 48 часов.',
         '',
-        '#### Weaknesses (слабые стороны)',
-        '- Ограниченный бренд и узнаваемость на старте.',
-        '- Зависимость от 1–2 каналов продаж.',
-        '- Нехватка процессов (CRM, регламенты) при росте.',
+        '### Weaknesses',
+        `- ${pick.w}.`,
+        '- Низкая узнаваемость бренда: приходится каждый раз продавать с нуля.',
         '',
-        '#### Opportunities (возможности)',
-        `- Спрос на **${nicheHint}** в выбранном сегменте.`,
-        '- Партнёрства, коллаборации, нишевые площадки.',
-        '- Контент и короткие видео как недорогой тест спроса.',
+        '### Opportunities',
+        `- ${pick.o}.`,
+        '- Рост спроса на конкретное решение вместо универсальных "сервисов для всех".',
         '',
-        '#### Threats (угрозы)',
-        '- Усиление конкуренции и рост стоимости трафика.',
-        '- Изменение правил площадок / законодательства.',
-        '- Сезонность и кассовые разрывы без резерва.',
+        '### Threats',
+        `- ${pick.t}.`,
+        '- Сбой в логистике/поставках и потеря репутации по срокам.',
         '',
-        '#### Следующий шаг',
-        '- Выберите 1 силу + 1 возможность на ближайшие 2 недели; 1 слабость закройте минимальным процессом.'
+        '### Что делаем сейчас',
+        '- Закрываем 1 слабость процессом (скрипт/таблица/регламент), и одновременно тестируем 1 возможность в течение 14 дней.'
       ].filter(Boolean).join('\n');
     }
 
@@ -946,8 +1150,7 @@
       btn.disabled = true;
       setAppStatus('Анализ…', 'thinking');
       await new Promise((r) => setTimeout(r, 350));
-      const md = buildCompetitorMarkdown(niche, lines);
-      out.innerHTML = `<div class="chat-msg text-sm text-gray-300 leading-relaxed">${markdownToHtml(md)}</div>`;
+      out.innerHTML = `<div class="chat-msg text-sm leading-relaxed">${buildCompetitorHtml(niche, lines)}</div>`;
       btn.disabled = false;
       setAppStatus('Готово к работе', 'ready');
     }
@@ -962,7 +1165,7 @@
       btn.disabled = true;
       setAppStatus('Генерация…', 'thinking');
       await new Promise((r) => setTimeout(r, 350));
-      out.innerHTML = `<div class="chat-msg text-sm text-gray-300 leading-relaxed">${markdownToHtml(buildMarketingMarkdown(product, audience, tone))}</div>`;
+      out.innerHTML = `<div class="chat-msg text-sm leading-relaxed">${buildMarketingHtml(product, audience, tone)}</div>`;
       btn.disabled = false;
       setAppStatus('Готово к работе', 'ready');
     }
@@ -976,7 +1179,7 @@
       btn.disabled = true;
       setAppStatus('SWOT…', 'thinking');
       await new Promise((r) => setTimeout(r, 350));
-      out.innerHTML = `<div class="chat-msg text-sm text-gray-300 leading-relaxed">${markdownToHtml(buildSwotMarkdown(name, ctx))}</div>`;
+      out.innerHTML = `<div class="result-rich chat-msg text-sm text-gray-300 leading-relaxed">${markdownToHtml(buildSwotMarkdown(name, ctx))}</div>`;
       btn.disabled = false;
       setAppStatus('Готово к работе', 'ready');
     }
@@ -985,8 +1188,83 @@
       return String(s || '').toLowerCase().replace(/\s+/g, ' ').trim();
     }
 
+    /** Пытается извлечь 2–3 числа и посчитать прибыль / окупаемость / ROI из свободного текста. */
+    function tryChatFinanceFromText(raw) {
+      const ql = normalizeText(raw);
+      if (!/(руб|₽|влож|инвест|доход|расход|прибыл|окуп|roi|марж|капитал|выручк|затрат)/.test(ql)) return null;
+      const t = String(raw).replace(/\u00A0/g, ' ').replace(/,/g, '.');
+      const nums = t.match(/\d[\d\s]*(?:\.\d+)?/g);
+      if (!nums || nums.length < 2) return null;
+      const N = nums.map((s) => parseFloat(String(s).replace(/\s/g, ''))).filter((x) => x > 0 && x < 1e15 && isFinite(x));
+      if (N.length < 2) return null;
+      let investment = 0;
+      let revenue = 0;
+      let expenses = 0;
+      const hi = /влож|инвест|стартов|затратил|капитал|вложил/.test(ql);
+      const hr = /доход|выручк|продаж|выруч|поступлен/.test(ql);
+      const he = /расход|затрат|издерж/.test(ql);
+      if (hr && he) {
+        revenue = N[0];
+        expenses = N[1];
+        investment = N[2] || 0;
+      } else if (hi && hr) {
+        investment = N[0];
+        revenue = N[1];
+        expenses = N[2] || 0;
+      } else {
+        return null;
+      }
+      const profit = revenue - expenses;
+      const payback = profit > 0 && investment > 0 ? Math.ceil(investment / profit) : null;
+      const roiY = profit > 0 && investment > 0 ? ((profit * 12) / investment * 100).toFixed(0) : null;
+      const margin = revenue > 0 ? ((profit / revenue) * 100).toFixed(1) : '0';
+      return [
+        '### 📊 Расчёт по вашим цифрам',
+        '',
+        `- **Выручка:** ${revenue.toLocaleString('ru-RU')} ₽`,
+        `- **Расходы:** ${expenses.toLocaleString('ru-RU')} ₽`,
+        `- **Прибыль:** ${profit.toLocaleString('ru-RU')} ₽`,
+        investment > 0 ? `- **Вложения:** ${investment.toLocaleString('ru-RU')} ₽` : '',
+        `- **Рентабельность по выручке:** ${margin}%`,
+        payback != null ? `- **Окупаемость вложений:** ~${payback} мес. при такой прибыли` : profit <= 0 ? '- **Окупаемость:** при текущей модели прибыль ≤ 0 — пересмотрите цену или структуру расходов' : '',
+        roiY != null ? `- **ROI (год к вложениям, ориентир):** ~${roiY}%` : '',
+        '',
+        'Если что-то не сходится — напишите три числа отдельно: **вложения**, **выручка в месяц**, **расходы в месяц**.'
+      ].filter(Boolean).join('\n');
+    }
+
+    function getRecentUserContext(limit = 5) {
+      const userMsgs = (chatHistory || []).filter((m) => m && m.role === 'user').slice(-limit);
+      return userMsgs.map((m) => String(m.text || '').trim()).filter(Boolean).join(' | ');
+    }
+
+    function buildHowAlgorithm(rawText) {
+      const topic = String(rawText || '').replace(/^как\s*/i, '').trim() || 'вашей задачи';
+      return [
+        `## Как сделать: ${topic}`,
+        '',
+        '**1) Подготовка (сегодня)**',
+        `- Сформулируйте цель на 30 дней по теме «${topic}» и одну метрику успеха.`,
+        '- Ограничьте тест одним каналом, чтобы не распылить бюджет.',
+        '',
+        '**2) Запуск (7 дней)**',
+        '- Сделайте один сильный оффер и 2 креатива.',
+        '- Запустите трафик малым бюджетом, фиксируйте лиды и конверсию ежедневно.',
+        '',
+        '**3) Масштаб (день 8+)**',
+        '- Оставьте то, что окупается, отключите слабое.',
+        '- Докрутите скрипт продаж и повторите цикл на большем объеме.',
+        '',
+        '**Action Item:** напишите вашу нишу и бюджет на 7 дней — дам точный план под цифры.'
+      ].join('\n');
+    }
+
     function offlineChatAnswer(userText) {
       const q = normalizeText(userText);
+      const recentCtx = getRecentUserContext(4);
+      const financeTry = tryChatFinanceFromText(userText);
+      if (financeTry) return financeTry;
+      if (/^как\b/i.test(String(userText || '').trim())) return buildHowAlgorithm(userText);
       const rules = [
         [() => q.includes('iphone') && (q.includes('ресел') || q.includes('перепрод') || q.includes('resell') || q.includes('перепродав')), () => [
           '### Как стать реселлером iPhone (легально и аккуратно)',
@@ -1141,6 +1419,97 @@
           '### Разберём термин',
           '',
           'Напишите **одно слово или фразу** (например: юнит-экономика, LTV, воронка, лиды) — объясню коротко и дам пример из малого бизнеса.'
+        ].join('\n')],
+        [() => /воронк|лидоген|лиды\b|cpl\b|конверс/.test(q), () => [
+          '### Воронка и лиды',
+          '',
+          '- **Воронка**: охват → клик → лид → квалификация → оплата → повтор.',
+          '- **CPL** = расход на рекламу / количество лидов; сравнивайте по каналам.',
+          '- Узкое горлышко чаще всего: посадочная, скорость ответа, цена, доверие.',
+          '',
+          'Напишите **канал** (таргет, поиск, органика) и **текущий CPL** — подскажу, что проверить первым.'
+        ].join('\n')],
+        [() => /crm|срм|amo|битрик|пайплайн/.test(q), () => [
+          '### CRM на старте',
+          '',
+          '- Минимум: статус сделки, источник лида, следующий шаг, сумма.',
+          '- Автоответ новому лиду за 5–15 минут сильнее «идеальной воронки» без ответа.',
+          '- Раз в неделю: конверсия по этапам и причины отказа в 3 тега.',
+          '',
+          'Сколько лидов в месяц и **где** они теряются чаще всего?'
+        ].join('\n')],
+        [() => /лендинг|landing|посадочн|сайт прода/.test(q), () => [
+          '### Посадочная страница',
+          '',
+          '1. Заголовок = боль + результат + срок.',
+          '2. Подзаголовок = как работаете и для кого.',
+          '3. Доказательства: цифры, логотипы, отзыв.',
+          '4. Один основной CTA; форма короткая.',
+          '',
+          'Пришлите **нишу** — предложу структуру блоков в 6 строках.'
+        ].join('\n')],
+        [() => /делегир|аутсорс|фриланс|подряд/.test(q), () => [
+          '### Делегирование',
+          '',
+          '- Делегируйте **повторяемое** с чек-листом, не «мысли вслух».',
+          '- Контроль: срок, критерий готовности, один канал связи.',
+          '- Начните с 20% времени, не с критического процесса в первый день.',
+          '',
+          'Какую задачу хотите отдать первой и **какой результат** ожидаете?'
+        ].join('\n')],
+        [() => /переговор|сделк|клиент не готов|возражен/.test(q), () => [
+          '### Переговоры и возражения',
+          '',
+          '- Выслушайте → переформулируйте боль → дайте мини-кейс → предложите шаг (пилот, звонок, документ).',
+          '- «Дорого» часто значит «не вижу ценности» — переведите в цифру или риск без вас.',
+          '- Фиксируйте итог письмом: что согласовали, что отправите, когда.',
+          '',
+          'Какое **возражение** слышите чаще всего — одной фразой?'
+        ].join('\n')],
+        [() => /партнёр|коллаб|бартер|совместн/.test(q), () => [
+          '### Партнёрства',
+          '',
+          '- Ищите смежную аудиторию без прямого конфликта продуктов.',
+          '- Пакет: кто что даёт, срок пилота, метрика успеха, кто отвечает.',
+          '- Оформляйте хотя бы e-mail-согласование условий.',
+          '',
+          'В какой **нише** ищете партнёра и что можете предложить взамен?'
+        ].join('\n')],
+        [() => /email|рассылк|подписчик|telegram-канал/.test(q), () => [
+          '### Email и рассылки',
+          '',
+          '- Сегмент: новые / тёплые / клиенты — разные цепочки.',
+          '- Тема письма = конкретная выгода или вопрос; тестируйте 2 варианта.',
+          '- Один CTA; частота без спама — лучше реже, но полезно.',
+          '',
+          'Какой **продукт** и какой сегмент базы?'
+        ].join('\n')],
+        [() => /выгоран|устал|мотивац|прокрастин/.test(q), () => [
+          '### Режим основателя',
+          '',
+          '- Разделите «стратегия / операционка» по дням недели — иначе всё смешивается.',
+          '- Один блок глубокой работы 90 мин без мессенджеров.',
+          '- Если застряли — сузьте задачу до действия на 25 минут.',
+          '',
+          'Что сейчас **больше всего выматывает** — объём, неопределённость или люди?'
+        ].join('\n')],
+        [() => /юнит-эконом|ltv|cac|пожизненн/.test(q), () => [
+          '### Юнит-экономика',
+          '',
+          '- **CAC** ≈ маркетинг на привлечение / новые платящие за период.',
+          '- **LTV** ≈ средний чек × частота покупок × срок жизни клиента (упрощённо).',
+          '- Здорово, если **LTV > 3× CAC** — ориентир для подписки и повторных продаж.',
+          '',
+          'Дайте **средний чек** и **стоимость привлечения клиента** — оценю запас прочности.'
+        ].join('\n')],
+        [() => /масштаб|франшиз|открыть филиал|в другом городе/.test(q), () => [
+          '### Масштабирование',
+          '',
+          '- Сначала **повторяемый процесс** и юнит-экономика на одной точке.',
+          '- Филиал = копия процесса + локальный маркетинг + управленец на месте.',
+          '- Франшиза — когда бренд и регламенты выдерживают клонирование.',
+          '',
+          'На каком **обороте и марже** сейчас стоите и что хотите открыть следующим шагом?'
         ].join('\n')]
       ];
       for (const [pred, fn] of rules) {
@@ -1148,18 +1517,98 @@
           if (pred()) return fn();
         } catch (e) { console.warn(e); }
       }
+      const raw = String(userText || '').trim();
+      const bucket =
+        /иде|ниш|продукт|запуск|стартап/.test(q) ? 'product' :
+          /продаж|клиент|заявк|конверс|воронк/.test(q) ? 'sales' :
+            /деньг|руб|₽|финанс|прибыл|расход|roi|ltv|cac/.test(q) ? 'finance' :
+              /реклам|трафик|таргет|контент|маркет/.test(q) ? 'marketing' :
+                /конкурент|рынок/.test(q) ? 'competition' : 'strategy';
+      const isTooShort = raw.length < 10;
+      if (isTooShort) {
+        return [
+          '## Принял запрос',
+          '',
+          `Готов разобрать задачу как Senior-консультант D&D ai.${recentCtx ? ` Учитываю контекст: ${recentCtx}.` : ''}`,
+          '',
+          '**Action Item:** напишите 1 строкой: `ниша + цель на 30 дней + бюджет`.',
+          '',
+          'Пример: `онлайн-курс английского, 100 лидов за месяц, бюджет 40 000 ₽`.'
+        ].join('\n');
+      }
+      if (bucket === 'marketing') {
+        return [
+          '## Growth-пакет (быстрый старт)',
+          '',
+          `**Контекст:** ${raw}`,
+          '',
+          '### 1) УТП',
+          '- **Формула:** для [ЦА] даем [результат] за [срок] без [главный страх].',
+          '',
+          '### 2) Каналы трафика',
+          '- Короткие видео (органика + платный буст).',
+          '- Поиск/контекст по горячим запросам.',
+          '- Партнерства с смежными сообществами.',
+          '',
+          '### 3) Контент-план (7 дней)',
+          '- День 1: боль клиента и частая ошибка.',
+          '- День 2: мини-кейс с цифрой.',
+          '- День 3: оффер и CTA в директ.',
+          '',
+          '### 4) Идеи для рекламы',
+          '- Креатив `до/после`.',
+          '- Креатив `3 ошибки`.',
+          '- Креатив `чек-лист`.',
+          '',
+          '**Action Item:** дайте 1 продукт, 1 ЦА и бюджет теста на 7 дней — соберу точные тексты объявлений.'
+        ].join('\n');
+      }
+      if (bucket === 'finance') {
+        return [
+          '## Финансовый разбор',
+          '',
+          `**Вход:** ${raw}`,
+          '',
+          '- **ROI (год):** (прибыль за год / вложения) × 100%.',
+          '- **CAC:** стоимость привлечения 1 платящего клиента.',
+          '- **LTV:** прибыль от клиента за весь срок отношений.',
+          '',
+          '**Action Item:** отправьте 3 цифры: вложения, выручка/мес, расходы/мес — верну расчет и 3 шага улучшения.'
+        ].join('\n');
+      }
+      if (bucket === 'competition') {
+        return [
+          '## Анализ конкурентов (черновик)',
+          '',
+          `**Ниша:** ${raw}`,
+          '',
+          '| Критерий | Что проверяем |',
+          '|---|---|',
+          '| Продукт | Ассортимент, упаковка оффера, гарантия |',
+          '| Цена | Базовый тариф, средний чек, скидки |',
+          '| Маркетинг | Каналы, креативы, регулярность контента |',
+          '| Сервис | Скорость ответа, скрипт, отзывы |',
+          '',
+          '**Action Item:** добавьте 3–5 конкурентов по строкам в разделе «Анализ конкурентов», и я выдам сравнение + отстройку.'
+        ].join('\n');
+      }
       return [
-        '### Разберём ваш запрос',
+        '## Стратегический ответ',
         '',
-        `Вы написали: «${String(userText).slice(0, 200)}${String(userText).length > 200 ? '…' : ''}»`,
+        `**Запрос:** ${raw}`,
+        recentCtx ? `**Контекст из чата:** ${recentCtx}` : '',
         '',
-        'Чтобы дать точный ответ, уточните:',
-        '- **Цель** (запуск, рост, экономия, маркетинг…)',
-        '- **Ниша или продукт**',
-        '- **Бюджет и срок**',
-        '- **Город или онлайн**',
+        '### Что делать сейчас',
+        '- Сузить цель до метрики на 30 дней.',
+        '- Определить один главный канал продаж.',
+        '- Зафиксировать недельный цикл: лиды, конверсия, прибыль.',
         '',
-        'Можно воспользоваться разделами **Генератор идей**, **Финансы**, **Маркетинг**, **Конкуренты**, **SWOT** — там структурированные шаблоны.'
+        '### Lean-структура',
+        '- **Проблема:** какую боль клиента закрываете.',
+        '- **Решение:** в чем отличие от конкурентов.',
+        '- **Экономика:** CAC, LTV, маржа.',
+        '',
+        '**Action Item:** напишите `ниша / цель / бюджет / срок`, и я дам точный пошаговый план без воды.'
       ].join('\n');
     }
 
@@ -1361,112 +1810,151 @@
       return 'generic';
     }
 
+    function pickByHash(seed, arr, count = 1) {
+      if (!Array.isArray(arr) || arr.length === 0) return [];
+      const out = [];
+      const used = {};
+      let salt = 0;
+      while (out.length < Math.min(count, arr.length) && salt < 200) {
+        const idx = strHash(`${seed}|${salt}`) % arr.length;
+        if (!used[idx]) {
+          used[idx] = true;
+          out.push(arr[idx]);
+        }
+        salt++;
+      }
+      return out;
+    }
+
+    function formatMoney(n) {
+      return `${Math.round(Math.max(0, Number(n) || 0)).toLocaleString('ru-RU')} ₽`;
+    }
+
     function buildBusinessPlan(topic, opts = {}) {
       const t = String(topic).trim();
       const channel = opts.channel || 'online';
       const audience = String(opts.audience || '').trim();
       const budget = opts.budget != null && opts.budget !== '' ? Number(opts.budget) : null;
-
-      const budgetLine = budget != null && budget > 0
-        ? `Ориентир стартового бюджета: **${formatMoneyPlan(budget)}**. Заложите 15–25% на непредвиденное.`
-        : `Бюджет не указан — начните с минимального MVP и фиксируйте каждый расход в таблице.`;
-
-      const audienceLine = audience
-        ? `Аудитория (ваш ввод): **${audience}**.`
-        : `Проведите 10 коротких разговоров с потенциальными клиентами и выпишите 3 главные боли.`;
-
       const niche = inferPlanNiche(t);
-      const specSets = {
+      const sig = extractNicheSignals(`${t} ${audience}`);
+      const baseProfiles = {
+        food_delivery: { budget: 260000, check: 690, margin: 0.34, deals: 700, fixed: 125000, name: 'еда/доставка' },
+        education: { budget: 170000, check: 5200, margin: 0.62, deals: 42, fixed: 78000, name: 'обучение' },
+        retail: { budget: 290000, check: 1850, margin: 0.28, deals: 260, fixed: 96000, name: 'ритейл/товарка' },
+        tech_product: { budget: 420000, check: 7900, margin: 0.68, deals: 48, fixed: 145000, name: 'tech-продукт' },
+        beauty: { budget: 190000, check: 2300, margin: 0.56, deals: 95, fixed: 82000, name: 'бьюти-услуги' },
+        fitness: { budget: 230000, check: 3400, margin: 0.52, deals: 88, fixed: 91000, name: 'фитнес-услуги' },
+        services: { budget: 180000, check: 6200, margin: 0.57, deals: 36, fixed: 73000, name: 'услуги' },
+        creator: { budget: 140000, check: 2900, margin: 0.64, deals: 55, fixed: 52000, name: 'контент/creator' },
+        generic: { budget: 210000, check: 2500, margin: 0.45, deals: 90, fixed: 86000, name: 'малый бизнес' }
+      };
+      const p = baseProfiles[niche] || baseProfiles.generic;
+      const seed = `${Date.now()}|${t}|${audience}|${channel}|${niche}`;
+      const swing = (min, max, salt) => min + (strHash(`${seed}|${salt}`) % (max - min + 1));
+      const assumedBudget = budget && budget > 0 ? budget : p.budget + swing(-35000, 35000, 'budget');
+      const avgCheck = Math.max(300, Math.round(p.check * (0.9 + swing(0, 25, 'check') / 100)));
+      const dealsMonth = Math.max(12, Math.round(p.deals * (0.85 + swing(0, 30, 'deals') / 100)));
+      const revenueMonth = avgCheck * dealsMonth;
+      const fixedCosts = Math.round(p.fixed * (0.9 + swing(0, 20, 'fixed') / 100));
+      const varRate = Math.max(0.18, Math.min(0.72, 1 - p.margin));
+      const variableCosts = Math.round(revenueMonth * varRate);
+      const totalCosts = fixedCosts + variableCosts;
+      const profitMonth = revenueMonth - totalCosts;
+      const paybackMonths = profitMonth > 0 ? Math.max(1, Math.ceil(assumedBudget / profitMonth)) : null;
+      const breakEvenDeals = Math.ceil(fixedCosts / Math.max(1, avgCheck - Math.round(avgCheck * varRate)));
+
+      const costTemplates = {
         food_delivery: [
-          'Меню на старте: 3–7 позиций, один «хит», чтобы упростить закупку.',
-          'Упаковка и сроки годности — закладывайте в себестоимость.',
-          'Доставка: свои курьеры или агрегаторы; комиссии агрегаторов учитывайте в цене.'
+          ['Аренда кухни/точки', 0.22], ['Закупка сырья', 0.29], ['Логистика и упаковка', 0.17], ['Налоги и эквайринг', 0.09], ['Маркетинг', 0.13], ['Резерв', 0.10]
         ],
         education: [
-          'Программа на 4–8 занятий с понятным результатом в конце.',
-          'Бесплатный мини-урок или PDF как лид-магнит.',
-          'Платёж и доступ: простая схема (предоплата / рассрочка по договорённости).'
+          ['Платформа и сервисы', 0.18], ['Продакшн и методология', 0.22], ['Трафик и партнерки', 0.28], ['Кураторы/поддержка', 0.17], ['Налоги', 0.08], ['Резерв', 0.07]
         ],
         retail: [
-          'Первая партия маленькая: 2–4 SKU, быстрая оборачиваемость важнее широты.',
-          'Фото и описание карточки — основа конверсии онлайн.',
-          'Учёт остатков в таблице или приложении с первой недели.'
+          ['Первая закупка товара', 0.41], ['Склад/аренда', 0.16], ['Логистика', 0.13], ['Реклама', 0.14], ['Налоги', 0.08], ['Резерв', 0.08]
         ],
         tech_product: [
-          'MVP: один ключевой сценарий пользователя, без расползания функций.',
-          'Документация, демо и поддержка — часть продукта с первого дня.',
-          'Метрики: активация, удержание D7, конверсия в оплату.'
-        ],
-        beauty: [
-          'Регламент санитарии и записи; прозрачные цены и время услуги.',
-          'Пакеты и абонементы для повторных визитов.',
-          'Отзывы с фото (с согласия) и работа с негативом публично.'
-        ],
-        fitness: [
-          'Программы с измеримым результатом и ограничениями по здоровью.',
-          'Пробный формат и понятные правила отмены.',
-          'Партнёрства с врачами, магазинами спортпита, локальными брендами.'
-        ],
-        services: [
-          'Пакеты «базовый / стандарт / премиум» вместо размытого «всё сделаем».',
-          'Онлайн-запись и напоминания снижают неявки.',
-          'После первого успешного кейса — отзыв и короткое кейс-видео.'
-        ],
-        creator: [
-          'Контент-план на 2 недели: темы, форматы, призыв к действию.',
-          'Монетизация: реклама, партнёрки, платные продукты — не всё сразу, один поток на тест.',
-          'Аналитика: удержание, источник подписок, что даёт заявки.'
+          ['Разработка MVP', 0.40], ['Инфраструктура/сервисы', 0.10], ['Маркетинг', 0.22], ['Продажи/онбординг', 0.12], ['Юр/налоги', 0.08], ['Резерв', 0.08]
         ],
         generic: [
-          'Одна фраза: какую боль снимаете и как измеряется результат для клиента.',
-          'Первые 10 сделок вручную — так быстрее учитесь рынку.',
-          'Раз в неделю: выручка, маржа, откуда пришли клиенты — три цифры в заметке.'
+          ['Закупка/подготовка', 0.33], ['Операционные', 0.18], ['Маркетинг', 0.19], ['Налоги', 0.10], ['Логистика', 0.10], ['Резерв', 0.10]
         ]
       };
-      const spec = specSets[niche] || specSets.generic;
+      const ct = costTemplates[niche] || costTemplates.generic;
+      const costs = ct.map(([name, ratio]) => `- ${name}: **${formatMoney(assumedBudget * ratio)}**`);
 
-      const lines = [
+      const riskPool = {
+        food_delivery: ['Отключили свет — часть заготовок списывается.', 'Курьер сорвал SLA в пик, прилетают негативные отзывы.', 'Цена на сырье выросла, маржа просела за неделю.'],
+        education: ['Падение доходимости до конца курса.', 'Пиратство материалов и утечки.', 'Сильный эксперт-конкурент запускает дешевый интенсив.'],
+        retail: ['Зависли остатки и заморозили оборот.', 'Возвраты и брак съедают плановую прибыль.', 'Маркетплейс поменял комиссию в сезон.'],
+        tech_product: ['Сдвиг сроков релиза из-за багов.', 'Платная реклама даёт трафик без активации.', 'Изменения в API партнера ломают процесс клиента.'],
+        beauty: ['Мастер выбыл, расписание сорвалось.', 'Нарушение норм стерильности = репутационный удар.', 'Сезонный провал записи после праздников.'],
+        services: ['Клиент задержал оплату, образовался кассовый разрыв.', 'Подрядчик подвел по срокам.', 'Дорогой лид без закрытия в продажу.'],
+        generic: ['Спрос ниже ожиданий в первый месяц.', 'Расходы выросли быстрее выручки.', 'Конкурент демпингует и уводит горячих клиентов.']
+      };
+      const risks = pickByHash(seed, riskPool[niche] || riskPool.generic, 3).map((r) => `- ${r}`);
+
+      const week1 = [
+        `Собрать 15 разговоров с сегментом «${audience || 'первые платежеспособные клиенты'}» и зафиксировать возражения.`,
+        `Упаковать оффер: «${sig.k1} -> конкретный результат за срок».`,
+        'Запустить один канал привлечения и включить учет лидов в таблице.'
+      ];
+      const week2 = [
+        `Сделать первые продажи с чеком около **${formatMoney(avgCheck)}**.`,
+        `Проверить, сколько стоит лид и где теряются заявки.`,
+        'Подкрутить скрипт ответа: первый контакт до 10 минут.'
+      ];
+      const week3 = [
+        'Убрать слабые объявления, оставить 2 лучших по конверсии.',
+        'Ввести допродажу/пакет, чтобы поднять средний чек на 10-15%.',
+        'Подключить повторные касания по базе в мессенджере.'
+      ];
+      const week4 = [
+        'Масштабировать рабочий канал на +30-40% бюджета.',
+        'Фиксировать ROMI по каждому источнику трафика.',
+        'Сформировать план на месяц 2: что отключить, что масштабировать.'
+      ];
+
+      return [
         `# Бизнес-план: ${t}`,
         '',
-        `## Резюме`,
-        `- **Проект:** ${t}.`,
-        `- ${budgetLine}`,
-        `- ${audienceLine}`,
-        `- **Канал продаж:** ${planChannelHint(channel)}`,
+        '## Проект с нуля (автогенерация)',
+        `- Ниша: **${p.name}**.`,
+        `- ЦА: **${audience || 'люди с явной болью и готовностью платить здесь и сейчас'}**.`,
+        `- Канал продаж: **${planChannelHint(channel)}**`,
+        `- Бюджет на старт: **${formatMoney(assumedBudget)}**.`,
         '',
-        `## Продукт и ценность`,
-        ...spec.map(s => `- ${s}`),
+        '## УТП',
+        `- Для сегмента «${audience || 'первого платежеспособного сегмента'}» даем результат по теме «${sig.k1}» за фиксированный срок, с понятной ценой.`,
+        `- Отличие от типового рынка: меньше ожидания, прозрачный процесс и быстрая обратная связь в канале продажи.`,
         '',
-        `## Рынок и конкуренты`,
-        `- Найдите 5–10 конкурентов, выпишите цену и их главный оффер.`,
-        `- Ваше УТП в 1–2 предложениях: почему клиент выберет вас уже на этом этапе.`,
+        '## План запуска по неделям',
+        `1. **Неделя 1:** ${week1.join(' ')}`,
+        `2. **Неделя 2:** ${week2.join(' ')}`,
+        `3. **Неделя 3:** ${week3.join(' ')}`,
+        `4. **Неделя 4:** ${week4.join(' ')}`,
         '',
-        `## Маркетинг (первые 30 дней)`,
-        `- Неделя 1: оффер «для первых N клиентов», контент-план на 7 публикаций.`,
-        `- Неделя 2: один канал трафика с малым бюджетом + сбор заявок в мессенджер.`,
-        `- ${planChannelHint(channel)}`,
+        '## Подставленные цифры',
+        `- Средний чек: **${formatMoney(avgCheck)}**`,
+        `- Сделок в месяц (план): **${dealsMonth}**`,
+        `- Выручка/мес: **${formatMoney(revenueMonth)}**`,
+        `- Постоянные расходы/мес: **${formatMoney(fixedCosts)}**`,
+        `- Переменные расходы/мес: **${formatMoney(variableCosts)}**`,
+        `- Чистая прибыль/мес: **${formatMoney(profitMonth)}**`,
+        `- Точка безубыточности: **${breakEvenDeals} сделок/мес**`,
+        paybackMonths ? `- Окупаемость старта: **${paybackMonths} мес.**` : '- Окупаемость старта: **пока не сходится**, сначала правим цену/воронку/себестоимость.',
         '',
-        `## Операции`,
-        `- Регламент: заявка → оплата → выполнение → отзыв.`,
-        `- Резерв времени ~20% на сбои в первый месяц.`,
+        '## Расходы старта (автоподстановка)',
+        ...costs,
         '',
-        `## Финансы (подставьте свои расчёты)`,
-        `- Стартовые вложения: ______________ ₽`,
-        `- Постоянные расходы в месяц: ______________ ₽`,
-        `- Средний чек: ______________ ₽`,
-        `- Цель по выручке (мес. 1 / 2 / 3): ______________ / ______________ / ______________ ₽`,
+        '## Риски (честно)',
+        ...risks,
         '',
-        `## Риски и что делать`,
-        `- Завышенные ожидания по спросу — закрывается только тестовыми продажами.`,
-        `- Растущие расходы без контроля — еженедельный лимит на рекламу и закуп.`,
-        '',
-        `## План по неделям`,
-        `1. Неделя 1: интервью, цена, оффер, канал связи с клиентом.`,
-        `2. Неделя 2: первые оплаты, сбор отзывов, правка продукта.`,
-        `3. Неделя 3: повтор маркетинга, акция или бандл для среднего чека.`,
-        `4. Неделя 4: отчёт — выручка, маржа, стоимость лида, что отключить.`
-      ];
-      return lines.join('\n');
+        '## Контроль на 30 дней',
+        '- Еженедельно обновляйте 4 цифры: лиды, конверсия в оплату, маржа, кассовый остаток.',
+        '- Если 2 недели подряд прибыль ниже плана, режем убыточный канал и перезапускаем оффер.',
+        '- Если канал даёт ROMI > 120%, масштабируем бюджет постепенно, не одним скачком.'
+      ].join('\n');
     }
 
     function offlineFinanceAnalysis({ niche, profit, paybackMonths, roi, margin }) {
@@ -1953,6 +2441,7 @@
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') closePlanModal();
     });
+
   </script>
 </body>
 </html>
